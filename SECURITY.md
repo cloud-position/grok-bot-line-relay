@@ -6,7 +6,7 @@
 
 公開の Issue にはしないでください。リポジトリの **Security** タブ →「**Report a vulnerability**」から、非公開で報告してください。
 
-見つけた内容、再現の手順、悪用されると何ができるかを書いてください。本物のトークン・合言葉・Webhook の URL は書かないでください。
+見つけた内容、再現の手順、悪用されると何ができるかを書いてください。本物のトークン・チャネルシークレット・Webhook の URL は書かないでください。
 
 ## 対象のバージョン
 
@@ -20,7 +20,7 @@
 
 Please do not open a public issue. Report it privately from the repository's **Security** tab → **Report a vulnerability**.
 
-Include what you found, how to reproduce it, and what an attacker could do with it. Never include real tokens, passphrases or webhook URLs.
+Include what you found, how to reproduce it, and what an attacker could do with it. Never include real tokens, channel secrets or webhook URLs.
 
 ### Supported versions
 
