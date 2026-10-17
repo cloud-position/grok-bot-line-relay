@@ -123,6 +123,12 @@ npm run coverage
 npm run dev
 ```
 
+## ライセンス
+
+[MIT](LICENSE)
+
+脆弱性を見つけたときは [SECURITY.md](SECURITY.md) の手順で、非公開で知らせてください。
+
 ---
 
 LINE は LINE ヤフー株式会社の商標です。本リポジトリは LINE ヤフー株式会社の公式製品ではありません。

@@ -1,6 +1,7 @@
 {
   "name": "grok-bot-harness-line",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

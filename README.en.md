@@ -123,6 +123,12 @@ npm run coverage
 npm run dev
 ```
 
+## License
+
+[MIT](LICENSE)
+
+If you find a vulnerability, please report it privately as described in [SECURITY.md](SECURITY.md).
+
 ---
 
 LINE is a trademark of LY Corporation. This repository is not an official product of LY Corporation.
