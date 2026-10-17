@@ -199,7 +199,3 @@ npm run dev
 ## License
 
 [MIT](LICENSE)
-
----
-
-LINE is a trademark of LY Corporation. This repository is not an official product of LY Corporation.
