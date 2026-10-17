@@ -8,8 +8,6 @@ export const FORWARD_TIMEOUT_MS = 10_000;
 async function forward(target: ForwardTarget, body: Uint8Array, signature: string | null, events: number): Promise<void> {
   const headers = signature === null ? target.headers : { ...target.headers, "X-Line-Signature": signature };
   try {
-    // Never follow redirects: the destination check only covers the first URL,
-    // and following one could send the body and token to a host outside GROK_BOT_DOMAINS.
     const response = await fetch(target.url, {
       method: "POST",
       headers,
