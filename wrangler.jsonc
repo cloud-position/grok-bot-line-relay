@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "grok-bot-harness-line",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "workers_dev": true,
+  // The webhook URL carries the token, so keep request logs off.
+  "observability": { "enabled": false }
+}
