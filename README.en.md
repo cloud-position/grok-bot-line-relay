@@ -17,34 +17,21 @@ It runs on your own Cloudflare account (the free plan is enough). Nothing passes
 - Your Grok Bot webhook URL and token
 - Your LINE channel secret (open the channel in the LINE Developers Console; it is on the "Basic settings" tab)
 - A Cloudflare account (the free plan is enough)
-- A GitHub account (you fork or copy this repository into your GitHub)
+- A GitHub account (you fork this repository into your GitHub)
 
 ## Setting up
 
-There are two ways. A makes it easier to pick up updates later. If unsure, choose A.
-
-| | A. Fork (recommended) | B. Deploy button |
-| --- | --- | --- |
-| Setup | Four steps | One button |
-| Updates | Press "Sync fork" | By hand ([Updating](#updating)) |
-
-### A. Fork (recommended)
+Fork this repository and connect it to Cloudflare. With a fork, you pick up updates later just by pressing "Sync fork".
 
 1. [Fork this repository](https://github.com/keesmark/grok-bot-line-relay/fork). On the page that opens, press "Create fork".
 2. In the Cloudflare dashboard, open "Workers & Pages", choose "Create" and then "Import a repository". Connect GitHub and pick the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
-3. Keep the Worker name `grok-bot-line-relay` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails. If you already have a Worker with that name from B, do not set up A again; use [B's "Switch to a fork"](#if-you-used-b-deploy-button) instead.
+3. Keep the Worker name `grok-bot-line-relay` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails. If you already have a Worker with that name from the old Deploy button, do not set it up again; use "Switch to a fork" under [If you used the Deploy button](#if-you-used-the-deploy-button) instead.
 4. Once deployed, open the Worker's Settings → Variables and Secrets, add `CHANNEL_SECRET` as a secret, and enter your LINE channel secret. Until then the Worker returns 500 and forwards nothing.
 
 Screen labels may change. If you cannot find one, look for the closest match.
 
 - Do not edit files in your fork. Edits can conflict when you pick up updates.
 - A fork of a public repository stays public and cannot be made private. The channel secret and token never go into the repository; they live only in your Cloudflare and LINE settings, so a public fork is fine.
-
-### B. Deploy button
-
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/keesmark/grok-bot-line-relay)
-
-The button copies this repository into your GitHub (it is not a fork). Enter your LINE channel secret as `CHANNEL_SECRET` on the deploy screen and deploy. This is quicker, but the copy is not linked to this repository, so picking up updates takes manual work.
 
 ## Connecting LINE
 
@@ -76,23 +63,23 @@ npx wrangler secret put CHANNEL_SECRET
 
 ## Updating
 
-Changes to the template are listed in the [commit history](https://github.com/keesmark/grok-bot-line-relay/commits/main). Every method keeps your Worker URL and `CHANNEL_SECRET`, so the LINE settings stay as they are. If you were using the `RELAY_KEY` passphrase, read [Moving from RELAY_KEY](#moving-from-relay_key) first.
+Changes to the template are listed in the [commit history](https://github.com/keesmark/grok-bot-line-relay/commits/main). Updating keeps your Worker URL and `CHANNEL_SECRET`, so the LINE settings stay as they are. If you were using the `RELAY_KEY` passphrase, read [Moving from RELAY_KEY](#moving-from-relay_key) first.
 
 After updating, check in Cloudflare that the new deployment succeeded, and send one message from LINE to check that it reaches Grok Bot. If something breaks, you can roll the Worker back to the previous version in the Cloudflare dashboard. The repository still holds the new version, so it is deployed again the next time you update. Wait for a fixed update before updating again.
 
-### If you used A (fork)
+### If you set up from a fork
 
 On your fork's page, press "Sync fork" → "Update branch". Read through the listed commits before pressing it. Cloudflare deploys the update automatically.
 
 If GitHub reports a conflict, it is because files in your fork were edited. [Replacing with git](#replacing-with-git) brings it back.
 
-### If you used B (Deploy button)
+### If you used the Deploy button
 
-There are two ways.
+Earlier versions had a Deploy button. The repository it created is a copy that is not linked to this one, so pick up updates in one of these two ways.
 
 **1. Switch to a fork (recommended)**
 
-After switching once, you can use "Sync fork" just like A. This only works if your Worker is named `grok-bot-line-relay`.
+After switching once, you can use "Sync fork" just like a fork. This only works if your Worker is named `grok-bot-line-relay`.
 
 1. [Fork this repository](https://github.com/keesmark/grok-bot-line-relay/fork). Your copy already uses the same name, so give the fork a different one.
 2. In Cloudflare, open the Worker's Settings → Builds, disconnect the current repository and connect the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
@@ -104,7 +91,7 @@ Follow [Replacing with git](#replacing-with-git) below.
 
 ### Replacing with git
 
-This replaces main in your repository with the latest template commit. It works for both A and B. Anything you changed in your repository is lost.
+This replaces main in your repository with the latest template commit. It works for a fork and for a copy made with the Deploy button. Anything you changed in your repository is lost.
 
 Without git on your machine, open your repository's page, create a Codespace from "Code" → "Codespaces", and run the commands from the third line in its terminal.
 
@@ -123,7 +110,7 @@ If your Worker is not named `grok-bot-line-relay`, change `name` in `wrangler.js
 Earlier versions checked a `RELAY_KEY` passphrase and `key=` in the URL instead of the LINE signature. The current version does not use `RELAY_KEY` and returns 500 without `CHANNEL_SECRET`. To avoid losing messages, go in this order.
 
 1. Before updating, open the Worker's Settings → Variables and Secrets, add `CHANNEL_SECRET` as a secret, and enter your LINE channel secret.
-2. Update as described for A or B, and check that the deployment succeeded.
+2. Update as described in [Updating](#updating), and check that the deployment succeeded.
 3. In the LINE Developers Console, remove `&key=<passphrase>` from the Webhook URL, save, press "Verify" and check that it succeeds. The Worker still works with `key=` left in, but there is no reason to keep an unused passphrase in the URL.
 4. Delete `RELAY_KEY` from the Worker's Variables and Secrets.
 

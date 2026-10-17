@@ -19,12 +19,5 @@
     "typescript": "5.9.3",
     "vitest": "4.1.11",
     "wrangler": "4.149.0"
-  },
-  "cloudflare": {
-    "bindings": {
-      "CHANNEL_SECRET": {
-        "description": "LINE のチャネルシークレットです。LINE Developers コンソールで Messaging API のチャネルを開き、「チャネル基本設定」タブの「チャネルシークレット」をコピーして入れます。LINE から届いたリクエストかどうかを、これで確かめます。チャットには貼らないでください。"
-      }
-    }
   }
 }
