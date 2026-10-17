@@ -175,12 +175,13 @@ flowchart TD
 
 ## Security
 
+- The LINE signature (`X-Line-Signature`) is checked against `CHANNEL_SECRET`, and requests that do not match get a 401 and are not forwarded. The comparison uses Web Crypto `verify`, so its timing does not reveal the expected value.
 - No runtime dependencies. Development tools are pinned to exact versions with a lockfile.
 - Versions published less than 7 days ago are not installed (`min-release-age=7` in `.npmrc`, honored by npm 11.10 and later), since hijacked releases are usually found and pulled within days. Every version in the lockfile is at least 7 days old.
 - The request body is capped at 1 MiB, and reading stops once the cap is exceeded.
 - Redirects from the destination are never followed. The destination check only covers the first URL, so following one could deliver the body and token outside `cursor.sh`.
 - Forwarding gives up after 10 seconds.
-- Logs never include the body, the URL, or the key.
+- Logs never include the body, the URL, the token or the channel secret.
 - If you find a vulnerability, please report it privately as described in [SECURITY.md](SECURITY.md).
 
 ## Development

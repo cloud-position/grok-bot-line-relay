@@ -10,7 +10,7 @@
 
 ## 対象のバージョン
 
-`main` の最新のコミットだけが対象です。修正は自動では届きません。修正が出たら、README の「アップデートのしかた」の手順で取り込んでください。フォークで作った場合は「Sync fork」を押すだけです。
+`main` の最新のコミットだけが対象です。修正は自動では届きません。修正が出たら、README の「アップデートのしかた」の手順で、フォークのページの「Sync fork」から取り込んでください。
 
 ---
 
@@ -24,4 +24,4 @@ Include what you found, how to reproduce it, and what an attacker could do with 
 
 ### Supported versions
 
-Only the latest commit on `main` is supported. Fixes do not reach your repository automatically. When a fix is released, pick it up as described under "Updating" in the README. If you set up from a fork, just press "Sync fork".
+Only the latest commit on `main` is supported. Fixes do not reach your repository automatically. When a fix is released, pick it up with "Sync fork" on your fork's page, as described under "Updating" in the README.
