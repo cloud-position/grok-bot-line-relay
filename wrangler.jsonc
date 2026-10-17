@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "grok-bot-harness-line",
+  "name": "grok-bot-line-relay",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-15",
   "workers_dev": true,

@@ -1,4 +1,4 @@
-# grok-bot-harness-line
+# grok-bot-line-relay
 
 [English](README.en.md) | 日本語
 
@@ -31,7 +31,7 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 
 1. GitHub でこのリポジトリを開き、右上の「Fork」を押します。
 2. Cloudflare のダッシュボードで「Workers & Pages」を開き、「作成」（Create）から「リポジトリをインポート」（Import a repository）を選びます。GitHub をつなぎ、1 で作ったフォークを選びます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
-3. Worker の名前は `grok-bot-harness-line` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。B で作った同じ名前の Worker がすでにあるときは、A で作り直さずに [アップデートのしかた](#アップデートのしかた) の B の「フォークに付け替える」を使ってください。
+3. Worker の名前は `grok-bot-line-relay` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。B で作った同じ名前の Worker がすでにあるときは、A で作り直さずに [アップデートのしかた](#アップデートのしかた) の B の「フォークに付け替える」を使ってください。
 4. デプロイできたら、Worker の「設定」→「変数とシークレット」で `RELAY_KEY` を「シークレット」として追加し、合言葉を入れます。入れるまでは、Worker は 500 を返して何も転送しません。
 
 画面の名前は変わることがあります。見つからないときは、近い名前のものを探してください。
@@ -41,7 +41,7 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 
 ### B. Deploy ボタンで作る
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/keesmark/grok-bot-harness-line)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/keesmark/grok-bot-line-relay)
 
 ボタンを押すと、このリポジトリがあなたの GitHub に複製されます（フォークではありません）。デプロイ画面で `RELAY_KEY` に合言葉を入れてデプロイします。手早く作れますが、元のリポジトリとはつながっていないので、更新の取り込みは手作業になります。
 
@@ -77,7 +77,7 @@ npx wrangler secret put RELAY_KEY
 
 ## アップデートのしかた
 
-テンプレートの変更は [コミットの一覧](https://github.com/keesmark/grok-bot-harness-line/commits/main) で見られます。どの方法でも Worker の URL と `RELAY_KEY` は変わらないので、LINE の設定はそのまま使えます。
+テンプレートの変更は [コミットの一覧](https://github.com/keesmark/grok-bot-line-relay/commits/main) で見られます。どの方法でも Worker の URL と `RELAY_KEY` は変わらないので、LINE の設定はそのまま使えます。
 
 取り込んだら、Cloudflare で Worker の新しいデプロイが成功したことと、LINE から1通送って Grok Bot に届くことを確かめてください。うまく動かないときは、Cloudflare のダッシュボードで Worker を前の版に戻せます。戻してもリポジトリの中身は新しいままなので、次に取り込んだときにまたデプロイされます。直った更新が出てから取り込んでください。
 
@@ -93,7 +93,7 @@ npx wrangler secret put RELAY_KEY
 
 **1. フォークに付け替える（おすすめ）**
 
-一度付け替えれば、次からは A と同じく「Sync fork」で取り込めます。Worker の名前が `grok-bot-harness-line` のときだけ使えます。
+一度付け替えれば、次からは A と同じく「Sync fork」で取り込めます。Worker の名前が `grok-bot-line-relay` のときだけ使えます。
 
 1. GitHub でこのリポジトリをフォークします。複製のリポジトリと同じ名前は使えないので、フォークには別の名前を付けます。
 2. Cloudflare で Worker の「設定」→「ビルド」を開き、いまつないでいるリポジトリを外して、1 のフォークをつなぎます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
@@ -112,12 +112,12 @@ npx wrangler secret put RELAY_KEY
 ```sh
 git clone https://github.com/<あなたの GitHub 名>/<あなたのリポジトリ名>.git
 cd <あなたのリポジトリ名>
-git fetch https://github.com/keesmark/grok-bot-harness-line.git main
+git fetch https://github.com/keesmark/grok-bot-line-relay.git main
 git reset --hard FETCH_HEAD
 git push --force origin main
 ```
 
-Worker の名前を `grok-bot-harness-line` から変えていた場合は、`git push` の前に `wrangler.jsonc` の `name` を自分の Worker の名前に直してコミットしてください。直さないとビルドが失敗します。
+Worker の名前を `grok-bot-line-relay` から変えていた場合は、`git push` の前に `wrangler.jsonc` の `name` を自分の Worker の名前に直してコミットしてください。直さないとビルドが失敗します。
 
 ## 設計
 

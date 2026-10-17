@@ -1,4 +1,4 @@
-# grok-bot-harness-line
+# grok-bot-line-relay
 
 English | [日本語](README.md)
 
@@ -31,7 +31,7 @@ There are two ways. A makes it easier to pick up updates later. If unsure, choos
 
 1. Open this repository on GitHub and press "Fork" at the top right.
 2. In the Cloudflare dashboard, open "Workers & Pages", choose "Create" and then "Import a repository". Connect GitHub and pick the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
-3. Keep the Worker name `grok-bot-harness-line` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails. If you already have a Worker with that name from B, do not set up A again; use [B's "Switch to a fork"](#if-you-used-b-deploy-button) instead.
+3. Keep the Worker name `grok-bot-line-relay` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails. If you already have a Worker with that name from B, do not set up A again; use [B's "Switch to a fork"](#if-you-used-b-deploy-button) instead.
 4. Once deployed, open the Worker's Settings → Variables and Secrets, add `RELAY_KEY` as a secret, and enter the passphrase. Until then the Worker returns 500 and forwards nothing.
 
 Screen labels may change. If you cannot find one, look for the closest match.
@@ -41,7 +41,7 @@ Screen labels may change. If you cannot find one, look for the closest match.
 
 ### B. Deploy button
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/keesmark/grok-bot-harness-line)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/keesmark/grok-bot-line-relay)
 
 The button copies this repository into your GitHub (it is not a fork). Enter the passphrase as `RELAY_KEY` on the deploy screen and deploy. This is quicker, but the copy is not linked to this repository, so picking up updates takes manual work.
 
@@ -77,7 +77,7 @@ npx wrangler secret put RELAY_KEY
 
 ## Updating
 
-Changes to the template are listed in the [commit history](https://github.com/keesmark/grok-bot-harness-line/commits/main). Every method keeps your Worker URL and `RELAY_KEY`, so the LINE settings stay as they are.
+Changes to the template are listed in the [commit history](https://github.com/keesmark/grok-bot-line-relay/commits/main). Every method keeps your Worker URL and `RELAY_KEY`, so the LINE settings stay as they are.
 
 After updating, check in Cloudflare that the new deployment succeeded, and send one message from LINE to check that it reaches Grok Bot. If something breaks, you can roll the Worker back to the previous version in the Cloudflare dashboard. The repository still holds the new version, so it is deployed again the next time you update. Wait for a fixed update before updating again.
 
@@ -93,7 +93,7 @@ There are two ways.
 
 **1. Switch to a fork (recommended)**
 
-After switching once, you can use "Sync fork" just like A. This only works if your Worker is named `grok-bot-harness-line`.
+After switching once, you can use "Sync fork" just like A. This only works if your Worker is named `grok-bot-line-relay`.
 
 1. Fork this repository on GitHub. Your copy already uses the same name, so give the fork a different one.
 2. In Cloudflare, open the Worker's Settings → Builds, disconnect the current repository and connect the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
@@ -112,12 +112,12 @@ Without git on your machine, open your repository's page, create a Codespace fro
 ```sh
 git clone https://github.com/<your GitHub name>/<your repository>.git
 cd <your repository>
-git fetch https://github.com/keesmark/grok-bot-harness-line.git main
+git fetch https://github.com/keesmark/grok-bot-line-relay.git main
 git reset --hard FETCH_HEAD
 git push --force origin main
 ```
 
-If your Worker is not named `grok-bot-harness-line`, change `name` in `wrangler.jsonc` to your Worker's name and commit before `git push`. Otherwise the build fails.
+If your Worker is not named `grok-bot-line-relay`, change `name` in `wrangler.jsonc` to your Worker's name and commit before `git push`. Otherwise the build fails.
 
 ## Design
 
