@@ -1,5 +1,5 @@
 export interface Env {
-  RELAY_KEY?: string;
+  CHANNEL_SECRET?: string;
 }
 
 export const GROK_BOT_DOMAINS: readonly string[] = ["cursor.sh"];

@@ -5,18 +5,27 @@ import worker from "../src/index";
 import { handleWebhook } from "../src/webhook";
 
 const TARGET = "https://api2.cursor.sh/automations/webhook/abc123";
-const ENV: Env = { RELAY_KEY: "relay-secret" };
+const CHANNEL_SECRET = "channel-secret";
+const ENV: Env = { CHANNEL_SECRET };
 
 function webhookUrl(params: Record<string, string> = { url: TARGET, token: "send-key" }): string {
-  return `https://relay.example/webhook?${new URLSearchParams({ key: "relay-secret", ...params })}`;
+  return `https://relay.example/webhook?${new URLSearchParams(params)}`;
+}
+
+async function sign(body: string, secret = CHANNEL_SECRET): Promise<string> {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(body)));
+  return btoa(String.fromCharCode(...mac));
 }
 
 async function post(
   body: string,
-  { url = webhookUrl(), signature, env = ENV }: { url?: string; signature?: string; env?: Env } = {},
+  { url = webhookUrl(), signature, env = ENV }: { url?: string; signature?: string | null; env?: Env } = {},
 ): Promise<Response> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (signature !== undefined) headers["X-Line-Signature"] = signature;
+  const header = signature === undefined ? await sign(body) : signature;
+  if (header !== null) headers["X-Line-Signature"] = header;
   const ctx = createExecutionContext();
   const response = await handleWebhook(new Request(url, { method: "POST", headers, body }), env, ctx);
   await waitOnExecutionContext(ctx);
@@ -42,7 +51,11 @@ describe("/webhook", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(TARGET);
-    expect(init.headers).toEqual({ "Content-Type": "application/json", Authorization: "Bearer send-key" });
+    expect(init.headers).toEqual({
+      "Content-Type": "application/json",
+      Authorization: "Bearer send-key",
+      "X-Line-Signature": await sign(BODY),
+    });
     expect(new TextDecoder().decode(init.body as Uint8Array)).toBe(BODY);
   });
 
@@ -96,23 +109,41 @@ describe("/webhook", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns 401 and does not forward when key is missing or wrong", async () => {
-    const withoutKey = `https://relay.example/webhook?${new URLSearchParams({ url: TARGET, token: "send-key" })}`;
-    expect((await post(BODY, { url: withoutKey })).status).toBe(401);
-    expect((await post(BODY, { url: webhookUrl({ url: TARGET, token: "send-key", key: "" }) })).status).toBe(401);
-    expect((await post(BODY, { url: webhookUrl({ url: TARGET, token: "send-key", key: "wrong" }) })).status).toBe(401);
+  it("returns 401 and does not forward when the LINE signature is missing or wrong", async () => {
+    const tampered = BODY.replace("こんにちは", "さようなら");
+    for (const signature of [null, "", "not base64!", await sign(BODY, "other-secret"), await sign(tampered)]) {
+      expect((await post(BODY, { signature })).status, String(signature)).toBe(401);
+    }
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("returns 500 and does not forward when RELAY_KEY is not set", async () => {
-    expect((await post(BODY, { env: {} })).status).toBe(500);
+  it("returns 401 before checking the target when the LINE signature is wrong", async () => {
+    for (const signature of [null, await sign(BODY, "other-secret")]) {
+      expect((await post(BODY, { url: webhookUrl({ url: "https://evil.example/x", token: "k" }), signature })).status).toBe(401);
+      expect((await post(BODY, { url: webhookUrl({}), signature })).status).toBe(401);
+    }
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("passes the LINE signature header through", async () => {
-    await post(BODY, { signature: "sig-value" });
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(init.headers).toMatchObject({ "X-Line-Signature": "sig-value", Authorization: "Bearer send-key" });
+  it("returns 401 without reading the body when the LINE signature is missing or malformed", async () => {
+    for (const signature of [undefined, "not base64!", btoa("short")]) {
+      const headers: Record<string, string> = { "Content-Length": String(2 * 1024 * 1024) };
+      if (signature !== undefined) headers["X-Line-Signature"] = signature;
+      const request = new Request(webhookUrl(), { method: "POST", headers, body: BODY });
+      expect((await handleWebhook(request, ENV, createExecutionContext())).status, String(signature)).toBe(401);
+    }
+  });
+
+  it("returns 500 and does not forward when CHANNEL_SECRET is not set", async () => {
+    for (const CHANNEL_SECRET of [undefined, "", " \n"]) {
+      expect((await post(BODY, { env: { CHANNEL_SECRET } })).status, String(CHANNEL_SECRET)).toBe(500);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores surrounding whitespace in CHANNEL_SECRET", async () => {
+    expect((await post(BODY, { env: { CHANNEL_SECRET: ` ${CHANNEL_SECRET}\n` } })).status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("returns 200 without forwarding when there are no events", async () => {
@@ -123,7 +154,7 @@ describe("/webhook", () => {
 
   it("returns 400 for invalid JSON or an empty body", async () => {
     expect((await post("{oops")).status).toBe(400);
-    const request = new Request(webhookUrl(), { method: "POST" });
+    const request = new Request(webhookUrl(), { method: "POST", headers: { "X-Line-Signature": await sign("") } });
     expect((await handleWebhook(request, ENV, createExecutionContext())).status).toBe(400);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -144,7 +175,11 @@ describe("/webhook", () => {
 
   it("returns 413 for a body over the limit", async () => {
     const ctx = createExecutionContext();
-    const request = new Request(webhookUrl(), { method: "POST", headers: { "Content-Length": String(2 * 1024 * 1024) }, body: BODY });
+    const request = new Request(webhookUrl(), {
+      method: "POST",
+      headers: { "Content-Length": String(2 * 1024 * 1024), "X-Line-Signature": await sign(BODY) },
+      body: BODY,
+    });
     expect((await handleWebhook(request, ENV, ctx)).status).toBe(413);
   });
 
@@ -157,7 +192,7 @@ describe("/webhook", () => {
         else controller.close();
       },
     });
-    const request = new Request(webhookUrl(), { method: "POST", body: stream });
+    const request = new Request(webhookUrl(), { method: "POST", headers: { "X-Line-Signature": await sign(BODY) }, body: stream });
     expect(request.headers.get("Content-Length")).toBeNull();
     expect((await handleWebhook(request, ENV, createExecutionContext())).status).toBe(413);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -169,7 +204,7 @@ describe("/webhook", () => {
         controller.error(new Error("connection lost"));
       },
     });
-    const request = new Request(webhookUrl(), { method: "POST", body: stream });
+    const request = new Request(webhookUrl(), { method: "POST", headers: { "X-Line-Signature": await sign(BODY) }, body: stream });
     await expect(handleWebhook(request, ENV, createExecutionContext())).rejects.toThrow("connection lost");
     expect(fetchMock).not.toHaveBeenCalled();
   });

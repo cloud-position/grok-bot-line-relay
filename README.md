@@ -8,13 +8,14 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 
 - 何も保存しません。届いた本文を、そのまま Grok Bot に流すだけです。
 - LINE へ送信する機能はありません。チャネルアクセストークンも持ちません。
-- 設定する値は、この Worker 専用の合言葉 `RELAY_KEY` の1つだけです。
+- LINE の署名を確かめ、LINE から届いたものだけを流します。
+- 設定する値は、LINE のチャネルシークレット `CHANNEL_SECRET` の1つだけです。
 
 ## 準備するもの
 
 - Messaging API が使える LINE 公式アカウント（[LINE Developers コンソール](https://developers.line.biz/console/)）
 - Grok Bot の Webhook の URL と送信キー
-- 合言葉にする長いランダムな文字列（例: `openssl rand -hex 32` の出力）
+- LINE のチャネルシークレット（LINE Developers コンソールでチャネルを開き、「チャネル基本設定」タブにあります）
 - Cloudflare のアカウント（無料プランで動きます）
 - GitHub のアカウント（このリポジトリを、あなたの GitHub にフォークまたは複製します）
 
@@ -32,52 +33,50 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 1. [ここからフォークします](https://github.com/keesmark/grok-bot-line-relay/fork)。開いた画面で「Create fork」を押します。
 2. Cloudflare のダッシュボードで「Workers & Pages」を開き、「作成」（Create）から「リポジトリをインポート」（Import a repository）を選びます。GitHub をつなぎ、1 で作ったフォークを選びます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
 3. Worker の名前は `grok-bot-line-relay` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。B で作った同じ名前の Worker がすでにあるときは、A で作り直さずに [アップデートのしかた](#アップデートのしかた) の B の「フォークに付け替える」を使ってください。
-4. デプロイできたら、Worker の「設定」→「変数とシークレット」で `RELAY_KEY` を「シークレット」として追加し、合言葉を入れます。入れるまでは、Worker は 500 を返して何も転送しません。
+4. デプロイできたら、Worker の「設定」→「変数とシークレット」で `CHANNEL_SECRET` を「シークレット」として追加し、LINE のチャネルシークレットを入れます。入れるまでは、Worker は 500 を返して何も転送しません。
 
 画面の名前は変わることがあります。見つからないときは、近い名前のものを探してください。
 
 - フォークしたリポジトリのファイルは編集しないでください。編集すると、更新を取り込むときに衝突することがあります。
-- 公開リポジトリのフォークは公開のままで、非公開にはできません。合言葉や送信キーはリポジトリには入らず、Cloudflare と LINE の設定にだけ置くので、公開でも困りません。
+- 公開リポジトリのフォークは公開のままで、非公開にはできません。チャネルシークレットや送信キーはリポジトリには入らず、Cloudflare と LINE の設定にだけ置くので、公開でも困りません。
 
 ### B. Deploy ボタンで作る
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/keesmark/grok-bot-line-relay)
 
-ボタンを押すと、このリポジトリがあなたの GitHub に複製されます（フォークではありません）。デプロイ画面で `RELAY_KEY` に合言葉を入れてデプロイします。手早く作れますが、元のリポジトリとはつながっていないので、更新の取り込みは手作業になります。
+ボタンを押すと、このリポジトリがあなたの GitHub に複製されます（フォークではありません）。デプロイ画面で `CHANNEL_SECRET` に LINE のチャネルシークレットを入れてデプロイします。手早く作れますが、元のリポジトリとはつながっていないので、更新の取り込みは手作業になります。
 
 ## つなぎ方
 
 Worker ができたら、LINE Developers コンソールの Webhook URL に次を貼り、「検証」を押して成功を確かめます。
 
 ```
-https://<Worker の URL>/webhook?url=<Grok Bot の Webhook の URL>&token=<送信キー>&key=<合言葉>
+https://<Worker の URL>/webhook?url=<Grok Bot の Webhook の URL>&token=<送信キー>
 ```
 
 `url` は URL エンコードしてください。Worker は `token` を `Authorization: Bearer <送信キー>` に付け替えて、本文を LINE から届いたまま `url` に流します。
 
 - Grok Bot の Webhook の URL は `https://api2.cursor.sh/automations/webhook/…` の形です。
 - 流せる宛先は、`cursor.sh` とそのサブドメインの https の URL だけです（`src/env.ts` の `GROK_BOT_DOMAINS`）。パスは問わないので、Grok Bot の URL の形が変わっても動き続けます。ほかの宛先を指定すると 403 になり、どこにも流しません。
-- 送信キーと合言葉が URL に入るので、リクエストのログは残しません。この URL はチャットなどに貼らないでください。
+- 送信キーが URL に入るので、リクエストのログは残しません。この URL はチャットなどに貼らないでください。
 - 「検証」ボタンのようにイベントが空のものは流しません。
 - 流した先がエラーを返しても、LINE には 200 を返します。LINE は再送しないので、そのメッセージは LINE のチャットで確かめてください。
 
 ### LINE の署名について
 
-この Worker は LINE の署名を確かめません。偽のメッセージを Grok Bot に届けるには送信キー（`token`）が要りますが、送信キーを知っている人は Worker を通さずに Grok Bot へ直接送れるので、Worker で確かめても守りが増えないためです。LINE の `X-Line-Signature` ヘッダーはそのまま Grok Bot に渡すので、必要なら Grok Bot 側で確かめられます。
+LINE は、本文をチャネルシークレットで署名した値を `X-Line-Signature` ヘッダーに付けて送ってきます。Worker は届いた本文をそのまま使って署名を計算し、合わないリクエストは 401 にして、どこにも流しません。署名がないか形が違うときは、本文を読む前に 401 にします。`CHANNEL_SECRET` が設定されていないときは 500 を返し、何も流しません。
 
-### 合言葉（RELAY_KEY）について
+これで、LINE が署名した本文しか流れません。Worker の URL を知った人が、自分で作った本文と自分の `token` を付けて、あなたの Worker から `cursor.sh` に POST させること（踏み台）はできません。署名と本文は Grok Bot にも届くので、それを手に入れた人は同じ本文を Worker に送り直せますが、LINE が一度送った本文を繰り返すことしかできません。`X-Line-Signature` ヘッダーは、そのまま Grok Bot にも渡します。
 
-合言葉がないと、Worker の URL を知った人が、自分の `token` と本文を付けて、あなたの Worker から `cursor.sh` に POST させられます（踏み台）。これを防ぐため、`key` が `RELAY_KEY` と合わないリクエストは 401 にして、どこにも流しません。`RELAY_KEY` が設定されていないときは 500 を返し、何も流しません。
-
-合言葉をあとから変えるときは、次のコマンドか、Cloudflare のダッシュボードで Worker の「設定」→「変数とシークレット」から変え、LINE に登録した URL の `key=` も合わせて変えます。
+LINE Developers コンソールでチャネルシークレットを発行し直したときは、次のコマンドか、Cloudflare のダッシュボードで Worker の「設定」→「変数とシークレット」から `CHANNEL_SECRET` も変えます。変えるまでは、LINE からのリクエストがすべて 401 になります。
 
 ```sh
-npx wrangler secret put RELAY_KEY
+npx wrangler secret put CHANNEL_SECRET
 ```
 
 ## アップデートのしかた
 
-テンプレートの変更は [コミットの一覧](https://github.com/keesmark/grok-bot-line-relay/commits/main) で見られます。どの方法でも Worker の URL と `RELAY_KEY` は変わらないので、LINE の設定はそのまま使えます。
+テンプレートの変更は [コミットの一覧](https://github.com/keesmark/grok-bot-line-relay/commits/main) で見られます。どの方法でも Worker の URL と `CHANNEL_SECRET` は変わらないので、LINE の設定はそのまま使えます。合言葉 `RELAY_KEY` を使っていたときは、先に [RELAY_KEY から移るとき](#relay_key-から移るとき) を見てください。
 
 取り込んだら、Cloudflare で Worker の新しいデプロイが成功したことと、LINE から1通送って Grok Bot に届くことを確かめてください。うまく動かないときは、Cloudflare のダッシュボードで Worker を前の版に戻せます。戻してもリポジトリの中身は新しいままなので、次に取り込んだときにまたデプロイされます。直った更新が出てから取り込んでください。
 
@@ -119,6 +118,15 @@ git push --force origin main
 
 Worker の名前を `grok-bot-line-relay` から変えていた場合は、`git push` の前に `wrangler.jsonc` の `name` を自分の Worker の名前に直してコミットしてください。直さないとビルドが失敗します。
 
+### RELAY_KEY から移るとき
+
+以前の版は、LINE の署名の代わりに合言葉 `RELAY_KEY` と URL の `key=` で確かめていました。いまの版は `RELAY_KEY` を使わず、`CHANNEL_SECRET` がないと 500 を返します。メッセージを取りこぼさないよう、次の順に進めてください。
+
+1. 更新を取り込む前に、Worker の「設定」→「変数とシークレット」で `CHANNEL_SECRET` を「シークレット」として追加し、LINE のチャネルシークレットを入れます。
+2. A・B それぞれの手順で更新を取り込み、デプロイが成功したことを確かめます。
+3. LINE Developers コンソールの Webhook URL から `&key=<合言葉>` を消して保存し、「検証」を押して成功を確かめます。`key=` が残っていても動きますが、もう使わない合言葉を URL に残さないためです。
+4. Worker の「変数とシークレット」から `RELAY_KEY` を削除します。
+
 ## 設計
 
 ### 全体の流れ
@@ -131,8 +139,8 @@ sequenceDiagram
     participant G as Grok Bot
 
     U->>L: メッセージを送る
-    L->>W: POST /webhook?url=…&token=…&key=…<br/>X-Line-Signature 付き
-    W->>W: 合言葉・宛先・本文を確かめる
+    L->>W: POST /webhook?url=…&token=…<br/>X-Line-Signature 付き
+    W->>W: 署名・宛先・本文を確かめる
     W-->>L: 200（すぐ返す）
     W->>G: POST url<br/>Authorization: Bearer token<br/>X-Line-Signature はそのまま<br/>本文は届いたまま
     G-->>W: 応答（ログには件数と状態だけ残す）
@@ -149,17 +157,19 @@ flowchart TD
     B -- その他 --> N404[404]
     B -- /webhook --> C{POST か}
     C -- いいえ --> N405[405]
-    C -- はい --> S{RELAY_KEY が<br/>設定されているか}
+    C -- はい --> S{CHANNEL_SECRET が<br/>設定されているか}
     S -- いいえ --> N500[500]
-    S -- はい --> K{key が RELAY_KEY と合うか}
-    K -- いいえ --> N401[401]
+    S -- はい --> P{X-Line-Signature があり<br/>形が正しいか}
+    P -- いいえ --> N401a[401]
+    P -- はい --> F{本文が 1MiB 以下か}
+    F -- いいえ --> N413[413]
+    F -- はい --> K{X-Line-Signature が<br/>本文の署名と合うか}
+    K -- いいえ --> N401b[401]
     K -- はい --> D{url と token があり<br/>url が読めるか}
     D -- いいえ --> N400a[400]
     D -- はい --> E{宛先が cursor.sh か<br/>https・ポートなし・ユーザー情報なし<br/>cursor.sh かそのサブドメイン}
     E -- いいえ --> N403[403]
-    E -- はい --> F{本文が 1MiB 以下か}
-    F -- いいえ --> N413[413]
-    F -- はい --> G{JSON として読めるか}
+    E -- はい --> G{JSON として読めるか}
     G -- いいえ --> N400b[400]
     G -- はい --> H{events が空か}
     H -- 空 --> R200a[200・転送しない]
@@ -173,7 +183,7 @@ flowchart TD
 | `src/index.ts` | パスごとの振り分け |
 | `src/webhook.ts` | `/webhook` の処理と Grok Bot への転送 |
 | `src/env.ts` | 転送してよい宛先の一覧と、`url`・`token` からの宛先づくり |
-| `src/key.ts` | `RELAY_KEY` と `key` の照合 |
+| `src/signature.ts` | LINE の署名の照合 |
 | `src/body.ts` | 本文を上限つきで読む |
 
 ## セキュリティ
@@ -190,7 +200,7 @@ flowchart TD
 
 ```sh
 npm ci
-cp .dev.vars.example .dev.vars  # RELAY_KEY= に好きな値を入れる
+cp .dev.vars.example .dev.vars  # CHANNEL_SECRET= にチャネルシークレットを入れる
 npm test
 npm run coverage
 npm run dev
