@@ -160,7 +160,7 @@ flowchart TD
 - The LINE signature (`X-Line-Signature`) is checked against `CHANNEL_SECRET`, and requests that do not match get a 401 and are not forwarded. The comparison uses Web Crypto `verify`, so its timing does not reveal the expected value.
 - No runtime dependencies. Development tools are pinned to exact versions with a lockfile.
 - Versions published less than 7 days ago are not installed (`min-release-age=7` in `.npmrc`, honored by npm 11.10 and later), since hijacked releases are usually found and pulled within days. Every version in the lockfile is at least 7 days old.
-- Install scripts from dependencies (`postinstall` and the like) never run (`ignore-scripts=true` in `.npmrc`), so a hijacked release cannot run code at install time. This repository works without them.
+- Install scripts from dependencies (`postinstall` and the like) never run (`ignore-scripts=true` in `.npmrc`), so a hijacked release cannot run code at install time. The setting also stops pre/post scripts such as `pretest` in `package.json`, so this repository does not use them.
 - The request body is capped at 1 MiB, and reading stops once the cap is exceeded.
 - Redirects from the destination are never followed. The destination check only covers the first URL, so following one could deliver the body and token outside `cursor.sh`.
 - Forwarding gives up after 10 seconds.
