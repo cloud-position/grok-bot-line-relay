@@ -3,12 +3,21 @@ import { type Env, type ForwardTarget, targetFromQuery } from "./env";
 import { relayKeyMatches } from "./key";
 
 export const WEBHOOK_BODY_LIMIT = 1024 * 1024;
+export const FORWARD_TIMEOUT_MS = 10_000;
 
 async function forward(target: ForwardTarget, body: Uint8Array, signature: string | null, events: number): Promise<void> {
   const headers = signature === null ? target.headers : { ...target.headers, "X-Line-Signature": signature };
   try {
-    const response = await fetch(target.url, { method: "POST", headers, body });
+    const response = await fetch(target.url, {
+      method: "POST",
+      headers,
+      body,
+      redirect: "manual",
+      signal: AbortSignal.timeout(FORWARD_TIMEOUT_MS),
+    });
     if (response.ok) console.log("webhook: forwarded", { events, status: response.status });
+    else if (response.status >= 300 && response.status < 400)
+      console.error("webhook: upstream redirected, not followed", { events, status: response.status });
     else console.error("webhook: upstream returned an error", { events, status: response.status });
   } catch (error) {
     console.error("webhook: forward failed", { events, error: (error as Error)?.name ?? "unknown" });
