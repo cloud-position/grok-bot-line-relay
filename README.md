@@ -1,4 +1,4 @@
-# grok-bot-harness-line
+# grok-bot-line-relay
 
 [English](README.en.md) | 日本語
 
@@ -6,11 +6,9 @@ LINE 公式アカウントの Webhook を、Grok Bot の Webhook に届けるた
 LINE の Webhook は送信キーのヘッダーを付けられないので、この Worker が間に立ってキーを付け替えます。
 あなた自身の Cloudflare アカウント（無料プラン）で動きます。作者のサーバーは一切通りません。
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/keesmark/grok-bot-harness-line)
-
 - 何も保存しません。届いた本文を、そのまま Grok Bot に流すだけです。
 - LINE へ送信する機能はありません。チャネルアクセストークンも持ちません。
-- デプロイ画面で入れるのは、この Worker 専用の合言葉 `RELAY_KEY` の1つだけです。
+- 設定する値は、この Worker 専用の合言葉 `RELAY_KEY` の1つだけです。
 
 ## 準備するもの
 
@@ -18,11 +16,38 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 - Grok Bot の Webhook の URL と送信キー
 - 合言葉にする長いランダムな文字列（例: `openssl rand -hex 32` の出力）
 - Cloudflare のアカウント（無料プランで動きます）
-- GitHub のアカウント（ボタンを押すと、このリポジトリがあなたの GitHub に複製されます）
+- GitHub のアカウント（このリポジトリを、あなたの GitHub にフォークまたは複製します）
+
+## 作り方
+
+作り方は2つあります。あとから更新を取り込みやすいのは A です。迷ったら A にしてください。
+
+| | A. フォークで作る（おすすめ） | B. Deploy ボタンで作る |
+| --- | --- | --- |
+| 作る手間 | 手順が4つ | ボタン1つ |
+| 更新の取り込み | 「Sync fork」を押すだけ | 手作業（[アップデートのしかた](#アップデートのしかた)） |
+
+### A. フォークで作る（おすすめ）
+
+1. [ここからフォークします](https://github.com/keesmark/grok-bot-line-relay/fork)。開いた画面で「Create fork」を押します。
+2. Cloudflare のダッシュボードで「Workers & Pages」を開き、「作成」（Create）から「リポジトリをインポート」（Import a repository）を選びます。GitHub をつなぎ、1 で作ったフォークを選びます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
+3. Worker の名前は `grok-bot-line-relay` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。B で作った同じ名前の Worker がすでにあるときは、A で作り直さずに [アップデートのしかた](#アップデートのしかた) の B の「フォークに付け替える」を使ってください。
+4. デプロイできたら、Worker の「設定」→「変数とシークレット」で `RELAY_KEY` を「シークレット」として追加し、合言葉を入れます。入れるまでは、Worker は 500 を返して何も転送しません。
+
+画面の名前は変わることがあります。見つからないときは、近い名前のものを探してください。
+
+- フォークしたリポジトリのファイルは編集しないでください。編集すると、更新を取り込むときに衝突することがあります。
+- 公開リポジトリのフォークは公開のままで、非公開にはできません。合言葉や送信キーはリポジトリには入らず、Cloudflare と LINE の設定にだけ置くので、公開でも困りません。
+
+### B. Deploy ボタンで作る
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/keesmark/grok-bot-line-relay)
+
+ボタンを押すと、このリポジトリがあなたの GitHub に複製されます（フォークではありません）。デプロイ画面で `RELAY_KEY` に合言葉を入れてデプロイします。手早く作れますが、元のリポジトリとはつながっていないので、更新の取り込みは手作業になります。
 
 ## つなぎ方
 
-デプロイ画面で `RELAY_KEY` に合言葉を入れてデプロイします。できたら、LINE Developers コンソールの Webhook URL に次を貼り、「検証」を押して成功を確かめます。
+Worker ができたら、LINE Developers コンソールの Webhook URL に次を貼り、「検証」を押して成功を確かめます。
 
 ```
 https://<Worker の URL>/webhook?url=<Grok Bot の Webhook の URL>&token=<送信キー>&key=<合言葉>
@@ -49,6 +74,50 @@ https://<Worker の URL>/webhook?url=<Grok Bot の Webhook の URL>&token=<送�
 ```sh
 npx wrangler secret put RELAY_KEY
 ```
+
+## アップデートのしかた
+
+テンプレートの変更は [コミットの一覧](https://github.com/keesmark/grok-bot-line-relay/commits/main) で見られます。どの方法でも Worker の URL と `RELAY_KEY` は変わらないので、LINE の設定はそのまま使えます。
+
+取り込んだら、Cloudflare で Worker の新しいデプロイが成功したことと、LINE から1通送って Grok Bot に届くことを確かめてください。うまく動かないときは、Cloudflare のダッシュボードで Worker を前の版に戻せます。戻してもリポジトリの中身は新しいままなので、次に取り込んだときにまたデプロイされます。直った更新が出てから取り込んでください。
+
+### A（フォーク）で作った場合
+
+フォークのページで「Sync fork」→「Update branch」を押します。押す前に、取り込まれるコミットの一覧に目を通してください。取り込むと、Cloudflare が自動でデプロイします。
+
+衝突すると言われたときは、フォークのファイルを編集していたためです。[git で置き換える](#git-で置き換える) の手順で元に戻せます。
+
+### B（Deploy ボタン）で作った場合
+
+方法は2つあります。
+
+**1. フォークに付け替える（おすすめ）**
+
+一度付け替えれば、次からは A と同じく「Sync fork」で取り込めます。Worker の名前が `grok-bot-line-relay` のときだけ使えます。
+
+1. [ここからフォークします](https://github.com/keesmark/grok-bot-line-relay/fork)。複製のリポジトリと同じ名前は使えないので、フォークには別の名前を付けます。
+2. Cloudflare で Worker の「設定」→「ビルド」を開き、いまつないでいるリポジトリを外して、1 のフォークをつなぎます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
+3. Worker の新しいデプロイが成功したことを確かめます。
+
+**2. git で置き換える**
+
+下の [git で置き換える](#git-で置き換える) の手順を使います。
+
+### git で置き換える
+
+あなたのリポジトリの main を、テンプレートの最新のコミットに丸ごと置き換えます。A でも B でも使えます。自分のリポジトリで変えたところは、すべて消えます。
+
+手元に git がなければ、自分のリポジトリのページで「Code」→「Codespaces」から Codespace を作り、そのターミナルで3行目から打ちます。
+
+```sh
+git clone https://github.com/<あなたの GitHub 名>/<あなたのリポジトリ名>.git
+cd <あなたのリポジトリ名>
+git fetch https://github.com/keesmark/grok-bot-line-relay.git main
+git reset --hard FETCH_HEAD
+git push --force origin main
+```
+
+Worker の名前を `grok-bot-line-relay` から変えていた場合は、`git push` の前に `wrangler.jsonc` の `name` を自分の Worker の名前に直してコミットしてください。直さないとビルドが失敗します。
 
 ## 設計
 
@@ -130,7 +199,3 @@ npm run dev
 ## ライセンス
 
 [MIT](LICENSE)
-
----
-
-LINE は LINE ヤフー株式会社の商標です。本リポジトリは LINE ヤフー株式会社の公式製品ではありません。

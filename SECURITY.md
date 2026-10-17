@@ -10,7 +10,7 @@
 
 ## 対象のバージョン
 
-`main` の最新のコミットだけが対象です。Deploy ボタンで作ったリポジトリはフォークではない別のリポジトリなので、修正は自動では届かず、`git pull` でも取り込めません。修正が出たら、変わったファイル（主に `src/`）を最新の `main` からあなたのリポジトリにコピーしてコミットしてください。
+`main` の最新のコミットだけが対象です。修正は自動では届きません。修正が出たら、README の「アップデートのしかた」の手順で取り込んでください。フォークで作った場合は「Sync fork」を押すだけです。
 
 ---
 
@@ -24,4 +24,4 @@ Include what you found, how to reproduce it, and what an attacker could do with 
 
 ### Supported versions
 
-Only the latest commit on `main` is supported. The Deploy button creates a separate repository, not a fork, so fixes do not reach it automatically and cannot be pulled with `git pull`. When a fix is released, copy the changed files (mostly under `src/`) from the latest `main` into your repository and commit them.
+Only the latest commit on `main` is supported. Fixes do not reach your repository automatically. When a fix is released, pick it up as described under "Updating" in the README. If you set up from a fork, just press "Sync fork".
