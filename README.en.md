@@ -110,8 +110,10 @@ flowchart TD
 ## Security
 
 - No runtime dependencies. Development tools are pinned to exact versions with a lockfile.
+- Versions published less than 7 days ago are not installed (`min-release-age=7` in `.npmrc`, honored by npm 11.10 and later), since hijacked releases are usually found and pulled within days. Every version in the lockfile is at least 7 days old.
 - The request body is capped at 1 MiB, and reading stops once the cap is exceeded.
 - Logs never include the body, the URL, or the key.
+- If you find a vulnerability, please report it privately as described in [SECURITY.md](SECURITY.md).
 
 ## Development
 
@@ -122,6 +124,10 @@ npm test
 npm run coverage
 npm run dev
 ```
+
+## License
+
+[MIT](LICENSE)
 
 ---
 
