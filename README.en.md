@@ -29,7 +29,7 @@ There are two ways. A makes it easier to pick up updates later. If unsure, choos
 
 ### A. Fork (recommended)
 
-1. Open this repository on GitHub and press "Fork" at the top right.
+1. [Fork this repository](https://github.com/keesmark/grok-bot-line-relay/fork). On the page that opens, press "Create fork".
 2. In the Cloudflare dashboard, open "Workers & Pages", choose "Create" and then "Import a repository". Connect GitHub and pick the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
 3. Keep the Worker name `grok-bot-line-relay` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails. If you already have a Worker with that name from B, do not set up A again; use [B's "Switch to a fork"](#if-you-used-b-deploy-button) instead.
 4. Once deployed, open the Worker's Settings → Variables and Secrets, add `RELAY_KEY` as a secret, and enter the passphrase. Until then the Worker returns 500 and forwards nothing.
@@ -95,7 +95,7 @@ There are two ways.
 
 After switching once, you can use "Sync fork" just like A. This only works if your Worker is named `grok-bot-line-relay`.
 
-1. Fork this repository on GitHub. Your copy already uses the same name, so give the fork a different one.
+1. [Fork this repository](https://github.com/keesmark/grok-bot-line-relay/fork). Your copy already uses the same name, so give the fork a different one.
 2. In Cloudflare, open the Worker's Settings → Builds, disconnect the current repository and connect the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
 3. Check that the new deployment succeeded.
 

@@ -29,7 +29,7 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 
 ### A. フォークで作る（おすすめ）
 
-1. GitHub でこのリポジトリを開き、右上の「Fork」を押します。
+1. [ここからフォークします](https://github.com/keesmark/grok-bot-line-relay/fork)。開いた画面で「Create fork」を押します。
 2. Cloudflare のダッシュボードで「Workers & Pages」を開き、「作成」（Create）から「リポジトリをインポート」（Import a repository）を選びます。GitHub をつなぎ、1 で作ったフォークを選びます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
 3. Worker の名前は `grok-bot-line-relay` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。B で作った同じ名前の Worker がすでにあるときは、A で作り直さずに [アップデートのしかた](#アップデートのしかた) の B の「フォークに付け替える」を使ってください。
 4. デプロイできたら、Worker の「設定」→「変数とシークレット」で `RELAY_KEY` を「シークレット」として追加し、合言葉を入れます。入れるまでは、Worker は 500 を返して何も転送しません。
@@ -95,7 +95,7 @@ npx wrangler secret put RELAY_KEY
 
 一度付け替えれば、次からは A と同じく「Sync fork」で取り込めます。Worker の名前が `grok-bot-line-relay` のときだけ使えます。
 
-1. GitHub でこのリポジトリをフォークします。複製のリポジトリと同じ名前は使えないので、フォークには別の名前を付けます。
+1. [ここからフォークします](https://github.com/keesmark/grok-bot-line-relay/fork)。複製のリポジトリと同じ名前は使えないので、フォークには別の名前を付けます。
 2. Cloudflare で Worker の「設定」→「ビルド」を開き、いまつないでいるリポジトリを外して、1 のフォークをつなぎます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
 3. Worker の新しいデプロイが成功したことを確かめます。
 
