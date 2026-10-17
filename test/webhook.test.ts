@@ -46,6 +46,25 @@ describe("/webhook", () => {
     expect(new TextDecoder().decode(init.body as Uint8Array)).toBe(BODY);
   });
 
+  it("does not follow redirects and sets a timeout on the forward", async () => {
+    await post(BODY);
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.redirect).toBe("manual");
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it("returns 200 to LINE and forwards only once when the upstream redirects", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    fetchMock.mockImplementation(
+      async () => new Response(null, { status: 307, headers: { Location: "https://evil.example/steal" } }),
+    );
+    expect((await post(BODY)).status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(TARGET);
+    expect(error).toHaveBeenCalledWith("webhook: upstream redirected, not followed", { events: 1, status: 307 });
+    error.mockRestore();
+  });
+
   it("returns 400 and does not forward when url or token is missing or url is invalid", async () => {
     expect((await post(BODY, { url: webhookUrl({ url: TARGET }) })).status).toBe(400);
     expect((await post(BODY, { url: webhookUrl({ token: "k" }) })).status).toBe(400);
