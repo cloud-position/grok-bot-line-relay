@@ -25,7 +25,7 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 
 1. [ここからフォークします](https://github.com/keesmark/grok-bot-line-relay/fork)。開いた画面で「Create fork」を押します。
 2. Cloudflare のダッシュボードで「Workers & Pages」を開き、「作成」（Create）から「リポジトリをインポート」（Import a repository）を選びます。GitHub をつなぎ、1 で作ったフォークを選びます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
-3. Worker の名前は `grok-bot-line-relay` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。以前 Deploy ボタンで作った同じ名前の Worker があるときは、作り直さずに [Deploy ボタンで作った場合](#deploy-ボタンで作った場合) の「フォークに付け替える」を使ってください。
+3. Worker の名前は `grok-bot-line-relay` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。
 4. デプロイできたら、Worker の「設定」→「変数とシークレット」で `CHANNEL_SECRET` を「シークレット」として追加し、LINE のチャネルシークレットを入れます。入れるまでは、Worker は 500 を返して何も転送しません。
 
 画面の名前は変わることがあります。見つからないときは、近い名前のものを探してください。
@@ -65,39 +65,21 @@ npx wrangler secret put CHANNEL_SECRET
 
 テンプレートの変更は [コミットの一覧](https://github.com/keesmark/grok-bot-line-relay/commits/main) で見られます。更新しても Worker の URL と `CHANNEL_SECRET` は変わらないので、LINE の設定はそのまま使えます。合言葉 `RELAY_KEY` を使っていたときは、先に [RELAY_KEY から移るとき](#relay_key-から移るとき) を見てください。
 
-取り込んだら、Cloudflare で Worker の新しいデプロイが成功したことと、LINE から1通送って Grok Bot に届くことを確かめてください。うまく動かないときは、Cloudflare のダッシュボードで Worker を前の版に戻せます。戻してもリポジトリの中身は新しいままなので、次に取り込んだときにまたデプロイされます。直った更新が出てから取り込んでください。
-
-### フォークで作った場合
-
 フォークのページで「Sync fork」→「Update branch」を押します。押す前に、取り込まれるコミットの一覧に目を通してください。取り込むと、Cloudflare が自動でデプロイします。
+
+取り込んだら、Cloudflare で Worker の新しいデプロイが成功したことと、LINE から1通送って Grok Bot に届くことを確かめてください。うまく動かないときは、Cloudflare のダッシュボードで Worker を前の版に戻せます。戻してもリポジトリの中身は新しいままなので、次に取り込んだときにまたデプロイされます。直った更新が出てから取り込んでください。
 
 衝突すると言われたときは、フォークのファイルを編集していたためです。[git で置き換える](#git-で置き換える) の手順で元に戻せます。
 
-### Deploy ボタンで作った場合
-
-以前の版には Deploy ボタンがありました。ボタンで作ったリポジトリは複製で、元のリポジトリとつながっていないので、次のどちらかで更新を取り込みます。
-
-**1. フォークに付け替える（おすすめ）**
-
-一度付け替えれば、次からはフォークと同じく「Sync fork」で取り込めます。Worker の名前が `grok-bot-line-relay` のときだけ使えます。
-
-1. [ここからフォークします](https://github.com/keesmark/grok-bot-line-relay/fork)。複製のリポジトリと同じ名前は使えないので、フォークには別の名前を付けます。
-2. Cloudflare で Worker の「設定」→「ビルド」を開き、いまつないでいるリポジトリを外して、1 のフォークをつなぎます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
-3. Worker の新しいデプロイが成功したことを確かめます。
-
-**2. git で置き換える**
-
-下の [git で置き換える](#git-で置き換える) の手順を使います。
-
 ### git で置き換える
 
-あなたのリポジトリの main を、テンプレートの最新のコミットに丸ごと置き換えます。フォークでも、Deploy ボタンで作った複製でも使えます。自分のリポジトリで変えたところは、すべて消えます。
+フォークの main を、テンプレートの最新のコミットに丸ごと置き換えます。フォークで変えたところは、すべて消えます。
 
-手元に git がなければ、自分のリポジトリのページで「Code」→「Codespaces」から Codespace を作り、そのターミナルで3行目から打ちます。
+手元に git がなければ、フォークのページで「Code」→「Codespaces」から Codespace を作り、そのターミナルで3行目から打ちます。
 
 ```sh
-git clone https://github.com/<あなたの GitHub 名>/<あなたのリポジトリ名>.git
-cd <あなたのリポジトリ名>
+git clone https://github.com/<あなたの GitHub 名>/<フォークの名前>.git
+cd <フォークの名前>
 git fetch https://github.com/keesmark/grok-bot-line-relay.git main
 git reset --hard FETCH_HEAD
 git push --force origin main

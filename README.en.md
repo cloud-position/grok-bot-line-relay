@@ -25,7 +25,7 @@ Fork this repository and connect it to Cloudflare. With a fork, you pick up upda
 
 1. [Fork this repository](https://github.com/keesmark/grok-bot-line-relay/fork). On the page that opens, press "Create fork".
 2. In the Cloudflare dashboard, open "Workers & Pages", choose "Create" and then "Import a repository". Connect GitHub and pick the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
-3. Keep the Worker name `grok-bot-line-relay` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails. If you already have a Worker with that name from the old Deploy button, do not set it up again; use "Switch to a fork" under [If you used the Deploy button](#if-you-used-the-deploy-button) instead.
+3. Keep the Worker name `grok-bot-line-relay` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails.
 4. Once deployed, open the Worker's Settings → Variables and Secrets, add `CHANNEL_SECRET` as a secret, and enter your LINE channel secret. Until then the Worker returns 500 and forwards nothing.
 
 Screen labels may change. If you cannot find one, look for the closest match.
@@ -65,39 +65,21 @@ npx wrangler secret put CHANNEL_SECRET
 
 Changes to the template are listed in the [commit history](https://github.com/keesmark/grok-bot-line-relay/commits/main). Updating keeps your Worker URL and `CHANNEL_SECRET`, so the LINE settings stay as they are. If you were using the `RELAY_KEY` passphrase, read [Moving from RELAY_KEY](#moving-from-relay_key) first.
 
-After updating, check in Cloudflare that the new deployment succeeded, and send one message from LINE to check that it reaches Grok Bot. If something breaks, you can roll the Worker back to the previous version in the Cloudflare dashboard. The repository still holds the new version, so it is deployed again the next time you update. Wait for a fixed update before updating again.
-
-### If you set up from a fork
-
 On your fork's page, press "Sync fork" → "Update branch". Read through the listed commits before pressing it. Cloudflare deploys the update automatically.
+
+After updating, check in Cloudflare that the new deployment succeeded, and send one message from LINE to check that it reaches Grok Bot. If something breaks, you can roll the Worker back to the previous version in the Cloudflare dashboard. The repository still holds the new version, so it is deployed again the next time you update. Wait for a fixed update before updating again.
 
 If GitHub reports a conflict, it is because files in your fork were edited. [Replacing with git](#replacing-with-git) brings it back.
 
-### If you used the Deploy button
-
-Earlier versions had a Deploy button. The repository it created is a copy that is not linked to this one, so pick up updates in one of these two ways.
-
-**1. Switch to a fork (recommended)**
-
-After switching once, you can use "Sync fork" just like a fork. This only works if your Worker is named `grok-bot-line-relay`.
-
-1. [Fork this repository](https://github.com/keesmark/grok-bot-line-relay/fork). Your copy already uses the same name, so give the fork a different one.
-2. In Cloudflare, open the Worker's Settings → Builds, disconnect the current repository and connect the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
-3. Check that the new deployment succeeded.
-
-**2. Replace with git**
-
-Follow [Replacing with git](#replacing-with-git) below.
-
 ### Replacing with git
 
-This replaces main in your repository with the latest template commit. It works for a fork and for a copy made with the Deploy button. Anything you changed in your repository is lost.
+This replaces main in your fork with the latest template commit. Anything you changed in your fork is lost.
 
-Without git on your machine, open your repository's page, create a Codespace from "Code" → "Codespaces", and run the commands from the third line in its terminal.
+Without git on your machine, open your fork's page, create a Codespace from "Code" → "Codespaces", and run the commands from the third line in its terminal.
 
 ```sh
-git clone https://github.com/<your GitHub name>/<your repository>.git
-cd <your repository>
+git clone https://github.com/<your GitHub name>/<your fork>.git
+cd <your fork>
 git fetch https://github.com/keesmark/grok-bot-line-relay.git main
 git reset --hard FETCH_HEAD
 git push --force origin main
