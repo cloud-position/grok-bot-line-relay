@@ -112,6 +112,7 @@ flowchart TD
 - No runtime dependencies. Development tools are pinned to exact versions with a lockfile.
 - The request body is capped at 1 MiB, and reading stops once the cap is exceeded.
 - Logs never include the body, the URL, or the key.
+- If you find a vulnerability, please report it privately as described in [SECURITY.md](SECURITY.md).
 
 ## Development
 
@@ -126,8 +127,6 @@ npm run dev
 ## License
 
 [MIT](LICENSE)
-
-If you find a vulnerability, please report it privately as described in [SECURITY.md](SECURITY.md).
 
 ---
 
