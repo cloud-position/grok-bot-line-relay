@@ -11,6 +11,8 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 - LINE の署名を確かめ、LINE から届いたものだけを流します。
 - 設定する値は、LINE のチャネルシークレット `CHANNEL_SECRET` の1つだけです。
 
+> 個人が作った非公式のテンプレートです。xAI（現 SpaceXAI）や LINEヤフー株式会社とは関係がなく、提携や推奨も受けていません。Grok は SpaceXAI の商標です。LINE は LINEヤフー株式会社の登録商標または商標です。
+
 ## 準備するもの
 
 - Messaging API が使える LINE 公式アカウント（[LINE Developers コンソール](https://developers.line.biz/console/)）

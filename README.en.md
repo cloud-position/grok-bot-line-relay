@@ -11,6 +11,8 @@ It runs on your own Cloudflare account (the free plan is enough). Nothing passes
 - It verifies the LINE signature and forwards only what really comes from LINE.
 - The only value to set is `CHANNEL_SECRET`, your LINE channel secret.
 
+> This is an unofficial template made by an individual. It is not affiliated with, endorsed by, or sponsored by xAI (now SpaceXAI) or LY Corporation. Grok is a trademark of SpaceXAI. LINE is a trademark or registered trademark of LY Corporation.
+
 ## What you need
 
 - A LINE Official Account with the Messaging API enabled ([LINE Developers Console](https://developers.line.biz/console/))
