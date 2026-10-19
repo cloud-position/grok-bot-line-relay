@@ -1,5 +1,14 @@
 export interface Env {
   CHANNEL_SECRET?: string;
+  [name: `CHANNEL_SECRET_${string}`]: string | undefined;
+}
+
+export function channelSecrets(env: Env): string[] {
+  return Object.entries(env).flatMap(([name, value]) => {
+    if (name !== "CHANNEL_SECRET" && !name.startsWith("CHANNEL_SECRET_")) return [];
+    const secret = typeof value === "string" ? value.trim() : "";
+    return secret === "" ? [] : [secret];
+  });
 }
 
 export const GROK_BOT_DOMAINS: readonly string[] = ["cursor.sh"];

@@ -1,6 +1,6 @@
 import { BodyTooLargeError, readLimitedBody } from "./body";
-import { type Env, type ForwardTarget, targetFromQuery } from "./env";
-import { decodeLineSignature, lineSignatureMatches } from "./signature";
+import { channelSecrets, type Env, type ForwardTarget, targetFromQuery } from "./env";
+import { decodeLineSignature, lineSignatureMatchesAny } from "./signature";
 
 export const WEBHOOK_BODY_LIMIT = 1024 * 1024;
 export const FORWARD_TIMEOUT_MS = 10_000;
@@ -26,8 +26,8 @@ async function forward(target: ForwardTarget, body: Uint8Array, signature: strin
 
 export async function handleWebhook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
-  const channelSecret = env.CHANNEL_SECRET?.trim();
-  if (!channelSecret) {
+  const secrets = channelSecrets(env);
+  if (secrets.length === 0) {
     console.error("webhook: CHANNEL_SECRET is not set");
     return new Response(null, { status: 500 });
   }
@@ -49,7 +49,7 @@ export async function handleWebhook(request: Request, env: Env, ctx: ExecutionCo
     throw error;
   }
 
-  if (!(await lineSignatureMatches(body, given, channelSecret))) {
+  if (!(await lineSignatureMatchesAny(body, given, secrets))) {
     console.warn("webhook: invalid LINE signature");
     return new Response(null, { status: 401 });
   }
