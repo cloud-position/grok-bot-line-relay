@@ -1,6 +1,6 @@
 export interface Env {
   CHANNEL_SECRET?: string;
-  [name: `CHANNEL_SECRET_${string}`]: string | undefined;
+  [name: `CHANNEL_SECRET_${string}`]: unknown;
 }
 
 export function channelSecrets(env: Env): string[] {

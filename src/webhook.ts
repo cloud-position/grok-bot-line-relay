@@ -28,7 +28,7 @@ export async function handleWebhook(request: Request, env: Env, ctx: ExecutionCo
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
   const secrets = channelSecrets(env);
   if (secrets.length === 0) {
-    console.error("webhook: CHANNEL_SECRET is not set");
+    console.error("webhook: no CHANNEL_SECRET or CHANNEL_SECRET_<name> is set");
     return new Response(null, { status: 500 });
   }
   const signature = request.headers.get("X-Line-Signature") ?? "";

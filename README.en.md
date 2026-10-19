@@ -192,7 +192,7 @@ flowchart TD
 
 ```sh
 npm ci
-cp .dev.vars.example .dev.vars  # set CHANNEL_SECRET= to your channel secret
+cp .dev.vars.example .dev.vars  # set CHANNEL_SECRET= to your channel secret (add CHANNEL_SECRET_<name>= for more channels)
 npm test
 npm run coverage
 npm run dev

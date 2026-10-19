@@ -192,7 +192,7 @@ flowchart TD
 
 ```sh
 npm ci
-cp .dev.vars.example .dev.vars  # CHANNEL_SECRET= にチャネルシークレットを入れる
+cp .dev.vars.example .dev.vars  # CHANNEL_SECRET= にチャネルシークレットを入れる（2つ目からは CHANNEL_SECRET_<名前>= を足す）
 npm test
 npm run coverage
 npm run dev

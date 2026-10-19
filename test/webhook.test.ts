@@ -169,7 +169,7 @@ describe("/webhook", () => {
 
   it("ignores blank secrets and variables that are not channel secrets", async () => {
     const env = { CHANNEL_SECRET: " ", CHANNEL_SECRET_SHOP: "", CHANNEL_SECRETX: CHANNEL_SECRET, OTHER: CHANNEL_SECRET, CHANNEL_SECRET_KV: {} };
-    expect((await post(BODY, { env: env as unknown as Env })).status).toBe(500);
+    expect((await post(BODY, { env })).status).toBe(500);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
