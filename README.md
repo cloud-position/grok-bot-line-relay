@@ -1,10 +1,9 @@
-# grok-bot-line-relay
+# line-webhook-relay
 
 [English](README.en.md) | 日本語
 
-LINE 公式アカウントの Webhook を、Grok Bot の Webhook に届けるための Cloudflare Workers のテンプレートです。
-LINE の Webhook は送信キーのヘッダーを付けられないので、この Worker が間に立ってキーを付け替えます。
-Grok Bot 以外でも、`Authorization: Bearer` で受ける https の Webhook なら届けられます。
+LINE 公式アカウントの Webhook を、送信キーが要る https の Webhook（Grok Bot など）に届けるための Cloudflare Workers のテンプレートです。
+LINE の Webhook は送信キーのヘッダーを付けられないので、この Worker が間に立って、キーを `Authorization: Bearer` に付け替えます。
 あなた自身の Cloudflare アカウント（無料プラン）で動きます。作者のサーバーは一切通りません。
 
 - 何も保存しません。届いた本文を、そのまま宛先に流すだけです。
@@ -26,9 +25,9 @@ Grok Bot 以外でも、`Authorization: Bearer` で受ける https の Webhook �
 
 このリポジトリをフォークして、Cloudflare につなぎます。フォークにしておくと、あとから「Sync fork」を押すだけで更新を取り込めます。
 
-1. [ここからフォークします](https://github.com/keesmark/grok-bot-line-relay/fork)。開いた画面で「Create fork」を押します。
+1. [ここからフォークします](https://github.com/keesmark/line-webhook-relay/fork)。開いた画面で「Create fork」を押します。
 2. Cloudflare のダッシュボードで「Workers & Pages」を開き、「作成」（Create）から「リポジトリをインポート」（Import a repository）を選びます。GitHub をつなぎ、1 で作ったフォークを選びます。フォークが一覧に出ないときは、GitHub の画面で Cloudflare のアプリにそのリポジトリへのアクセスを許可します。
-3. Worker の名前は `grok-bot-line-relay` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。
+3. Worker の名前は `line-webhook-relay` のままでデプロイします。`wrangler.jsonc` の `name` と違うと、ビルドが失敗します。
 4. デプロイできたら、Worker の「設定」→「変数とシークレット」で `CHANNEL_SECRET` を「シークレット」として追加し、LINE のチャネルシークレットを入れます。入れるまでは、Worker は 500 を返して何も転送しません。
 
 画面の名前は変わることがあります。見つからないときは、近い名前のものを探してください。
@@ -85,7 +84,7 @@ npx wrangler secret put CHANNEL_SECRET_SHOP
 
 ## アップデートのしかた
 
-テンプレートの変更は [コミットの一覧](https://github.com/keesmark/grok-bot-line-relay/commits/main) で見られます。更新しても Worker の URL と `CHANNEL_SECRET` は変わらないので、LINE の設定はそのまま使えます。合言葉 `RELAY_KEY` を使っていたときは、先に [RELAY_KEY から移るとき](#relay_key-から移るとき) を見てください。
+テンプレートの変更は [コミットの一覧](https://github.com/keesmark/line-webhook-relay/commits/main) で見られます。ふだんは更新しても Worker の URL と `CHANNEL_SECRET` は変わらないので、LINE の設定はそのまま使えます。ただし、Worker の名前が `grok-bot-line-relay` のときは、先に [名前が line-webhook-relay に変わったとき](#名前が-line-webhook-relay-に変わったとき) を見てください。合言葉 `RELAY_KEY` を使っていたときは、先に [RELAY_KEY から移るとき](#relay_key-から移るとき) を見てください。
 
 フォークのページで「Sync fork」→「Update branch」を押します。押す前に、取り込まれるコミットの一覧に目を通してください。取り込むと、Cloudflare が自動でデプロイします。
 
@@ -102,12 +101,25 @@ npx wrangler secret put CHANNEL_SECRET_SHOP
 ```sh
 git clone https://github.com/<あなたの GitHub 名>/<フォークの名前>.git
 cd <フォークの名前>
-git fetch https://github.com/keesmark/grok-bot-line-relay.git main
+git fetch https://github.com/keesmark/line-webhook-relay.git main
 git reset --hard FETCH_HEAD
 git push --force origin main
 ```
 
-Worker の名前を `grok-bot-line-relay` から変えていた場合は、`git push` の前に `wrangler.jsonc` の `name` を自分の Worker の名前に直してコミットしてください。直さないとビルドが失敗します。
+Worker の名前を `line-webhook-relay` から変えていた場合は、`git push` の前に `wrangler.jsonc` の `name` を自分の Worker の名前に直してコミットしてください。直さないとビルドが失敗します。
+
+### 名前が line-webhook-relay に変わったとき
+
+このテンプレートは、名前を `grok-bot-line-relay` から `line-webhook-relay` に変えました。`wrangler.jsonc` の `name` も変わったので、Worker の名前が `grok-bot-line-relay` のまま更新を取り込むと、ビルドが失敗します（前の版は動き続けます）。メッセージを取りこぼさないよう、新しい名前の Worker を作ってから切り替えます。
+
+1. [アップデートのしかた](#アップデートのしかた) の手順で、フォークに更新を取り込みます。今の Worker のビルドは失敗しますが、前の版のまま動き続けます。
+2. [作り方](#作り方) の 2〜4 と同じ手順で、同じフォークから名前が `line-webhook-relay` の Worker を作ります。`CHANNEL_SECRET`（と `CHANNEL_SECRET_<名前>`）には、今の Worker と同じ値を入れます。
+3. つないでいるすべてのチャネルについて、LINE Developers コンソールの Webhook URL の Worker の URL の部分を新しい Worker の URL に変えて保存し、「検証」を押して成功を確かめます。
+4. LINE から1通送って宛先に届くことを確かめたら、古い Worker `grok-bot-line-relay` を削除します。
+
+独自ドメインやルートを使っていたときは、3 の代わりに、それを新しい Worker に付け替えます。LINE の Webhook URL は変えなくてかまいません。
+
+GitHub のリポジトリの URL も変わりましたが、古い URL は新しい URL に転送されます。
 
 ### RELAY_KEY から移るとき
 

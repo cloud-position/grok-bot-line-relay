@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "grok-bot-line-relay",
+  "name": "line-webhook-relay",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-15",
   // Forwards always go out through the public internet, never straight to this zone's origin.

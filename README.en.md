@@ -1,10 +1,9 @@
-# grok-bot-line-relay
+# line-webhook-relay
 
 English | [日本語](README.md)
 
-A Cloudflare Workers template that delivers webhooks from a LINE Official Account to a Grok Bot webhook.
-LINE webhooks cannot carry a custom key header, so this Worker sits in between and moves the key into one.
-It also works with any other https webhook that accepts `Authorization: Bearer`, not just Grok Bot.
+A Cloudflare Workers template that delivers webhooks from a LINE Official Account to an https webhook that needs a token, such as Grok Bot.
+LINE webhooks cannot carry a custom key header, so this Worker sits in between and moves the token into `Authorization: Bearer`.
 It runs on your own Cloudflare account (the free plan is enough). Nothing passes through the author's servers.
 
 - It stores nothing. It passes the request body to the destination as received.
@@ -26,9 +25,9 @@ It runs on your own Cloudflare account (the free plan is enough). Nothing passes
 
 Fork this repository and connect it to Cloudflare. With a fork, you pick up updates later just by pressing "Sync fork".
 
-1. [Fork this repository](https://github.com/keesmark/grok-bot-line-relay/fork). On the page that opens, press "Create fork".
+1. [Fork this repository](https://github.com/keesmark/line-webhook-relay/fork). On the page that opens, press "Create fork".
 2. In the Cloudflare dashboard, open "Workers & Pages", choose "Create" and then "Import a repository". Connect GitHub and pick the fork from step 1. If the fork is not listed, give the Cloudflare app access to it in your GitHub settings.
-3. Keep the Worker name `grok-bot-line-relay` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails.
+3. Keep the Worker name `line-webhook-relay` and deploy. If it differs from `name` in `wrangler.jsonc`, the build fails.
 4. Once deployed, open the Worker's Settings → Variables and Secrets, add `CHANNEL_SECRET` as a secret, and enter your LINE channel secret. Until then the Worker returns 500 and forwards nothing.
 
 Screen labels may change. If you cannot find one, look for the closest match.
@@ -85,7 +84,7 @@ npx wrangler secret put CHANNEL_SECRET_SHOP
 
 ## Updating
 
-Changes to the template are listed in the [commit history](https://github.com/keesmark/grok-bot-line-relay/commits/main). Updating keeps your Worker URL and `CHANNEL_SECRET`, so the LINE settings stay as they are. If you were using the `RELAY_KEY` passphrase, read [Moving from RELAY_KEY](#moving-from-relay_key) first.
+Changes to the template are listed in the [commit history](https://github.com/keesmark/line-webhook-relay/commits/main). Updating normally keeps your Worker URL and `CHANNEL_SECRET`, so the LINE settings stay as they are. The exception: if your Worker is still named `grok-bot-line-relay`, read [When the name changed to line-webhook-relay](#when-the-name-changed-to-line-webhook-relay) first. If you were using the `RELAY_KEY` passphrase, read [Moving from RELAY_KEY](#moving-from-relay_key) first.
 
 On your fork's page, press "Sync fork" → "Update branch". Read through the listed commits before pressing it. Cloudflare deploys the update automatically.
 
@@ -102,12 +101,25 @@ Without git on your machine, open your fork's page, create a Codespace from "Cod
 ```sh
 git clone https://github.com/<your GitHub name>/<your fork>.git
 cd <your fork>
-git fetch https://github.com/keesmark/grok-bot-line-relay.git main
+git fetch https://github.com/keesmark/line-webhook-relay.git main
 git reset --hard FETCH_HEAD
 git push --force origin main
 ```
 
-If your Worker is not named `grok-bot-line-relay`, change `name` in `wrangler.jsonc` to your Worker's name and commit before `git push`. Otherwise the build fails.
+If your Worker is not named `line-webhook-relay`, change `name` in `wrangler.jsonc` to your Worker's name and commit before `git push`. Otherwise the build fails.
+
+### When the name changed to line-webhook-relay
+
+This template was renamed from `grok-bot-line-relay` to `line-webhook-relay`. `name` in `wrangler.jsonc` changed too, so if your Worker is still named `grok-bot-line-relay`, the build fails after you update (the previous version keeps running). To avoid losing messages, create a Worker with the new name first and then switch over.
+
+1. Pick up the update in your fork as described in [Updating](#updating). The build of your current Worker fails, but it keeps running the previous version.
+2. Following steps 2 to 4 of [Setting up](#setting-up), create a Worker named `line-webhook-relay` from the same fork. Give `CHANNEL_SECRET` (and any `CHANNEL_SECRET_<name>`) the same values as in your current Worker.
+3. For every connected channel, replace the Worker URL part of the Webhook URL in the LINE Developers Console with the new Worker's URL, save, press "Verify" and check that it succeeds.
+4. Send one message from LINE, check that it reaches the destination, then delete the old `grok-bot-line-relay` Worker.
+
+If you use a custom domain or route, move it to the new Worker instead of step 3. The LINE Webhook URL can then stay as it is.
+
+The GitHub repository URL changed as well, but the old URL redirects to the new one.
 
 ### Moving from RELAY_KEY
 
