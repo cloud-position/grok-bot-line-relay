@@ -4,6 +4,7 @@ English | [日本語](README.md)
 
 A Cloudflare Workers template that delivers webhooks from a LINE Official Account to a Grok Bot webhook.
 LINE webhooks cannot carry a custom key header, so this Worker sits in between and moves the key into one.
+It also works with any other https webhook that accepts `Authorization: Bearer`, not just Grok Bot.
 It runs on your own Cloudflare account (the free plan is enough). Nothing passes through the author's servers.
 
 - It stores nothing. It passes the request body to Grok Bot as received.
@@ -46,7 +47,7 @@ https://<your Worker URL>/webhook?url=<Grok Bot webhook URL>&token=<Grok Bot tok
 URL-encode `url`. The Worker sends `token` as `Authorization: Bearer <Grok Bot token>` and posts the body to `url` exactly as LINE sent it.
 
 - A Grok Bot webhook URL looks like `https://api2.cursor.sh/automations/webhook/…`.
-- Only https URLs on `cursor.sh` and its subdomains are allowed as destinations (`GROK_BOT_DOMAINS` in `src/env.ts`). The path is not checked, so the Worker keeps working if the shape of Grok Bot URLs changes. Any other destination gets a 403 and nothing is forwarded.
+- Any https URL can be the destination. An http URL, a URL with a port, or a URL with a user name or password gets a 403 and nothing is forwarded, so the token is never sent in plain text.
 - The token is part of the URL, so request logs are turned off. Do not paste this URL into chats or other places.
 - Requests with no events, such as the "Verify" button, are not forwarded.
 - The Worker returns 200 to LINE even when the destination returns an error. LINE does not retry, so check that message in the LINE chat.
@@ -55,7 +56,7 @@ URL-encode `url`. The Worker sends `token` as `Authorization: Bearer <Grok Bot t
 
 LINE signs the body with your channel secret and sends the result in the `X-Line-Signature` header. The Worker computes the signature over the body exactly as received; requests whose signature matches none of your channel secrets get a 401 and nothing is forwarded. A missing or malformed signature gets a 401 before the body is read. If no channel secret is set, the Worker returns 500 and forwards nothing.
 
-So only bodies signed by LINE are forwarded, and anyone who learns your Worker URL cannot attach a body of their own and their own `token` to make your Worker POST to `cursor.sh` (using it as a relay). The signature and body also reach Grok Bot, so whoever obtains them can send that same body to the Worker again, but they can only repeat a body LINE already sent. The `X-Line-Signature` header is also passed through to Grok Bot unchanged.
+So only bodies signed by LINE are forwarded, and anyone who learns your Worker URL cannot attach a body of their own and their own `token` to make your Worker POST anywhere (using it as a relay). The signature and body also reach the destination, so whoever obtains them can send that same body to the Worker again. The signature covers only the body, so they can also change `url` and `token` to send it somewhere else, but they can only repeat a body LINE already sent. The token lives only in the URL you set in LINE, so a resent request never leaks it. The `X-Line-Signature` header is also passed through to Grok Bot unchanged.
 
 If you reissue the channel secret in the LINE Developers Console, update that channel's `CHANNEL_SECRET` (or `CHANNEL_SECRET_<name>`) too, with the command below or in the Cloudflare dashboard under the Worker's Settings → Variables and Secrets. Until you do, every request from that channel gets a 401.
 
@@ -157,7 +158,7 @@ flowchart TD
     K -- no --> N401b[401]
     K -- yes --> D{url and token present<br/>and url parses?}
     D -- no --> N400a[400]
-    D -- yes --> E{Destination on cursor.sh?<br/>https, no port, no user info<br/>cursor.sh or a subdomain}
+    D -- yes --> E{Destination is https?<br/>no port, no user info}
     E -- no --> N403[403]
     E -- yes --> G{Valid JSON?}
     G -- no --> N400b[400]
@@ -172,7 +173,7 @@ flowchart TD
 | --- | --- |
 | `src/index.ts` | Routes requests by path |
 | `src/webhook.ts` | Handles `/webhook` and forwards to Grok Bot |
-| `src/env.ts` | Reading the channel secrets, allowed destinations, and building the destination from `url` and `token` |
+| `src/env.ts` | Reading the channel secrets and building the destination from `url` and `token` |
 | `src/signature.ts` | Checks the LINE signature |
 | `src/body.ts` | Reads the body with a size cap |
 
@@ -183,7 +184,7 @@ flowchart TD
 - Versions published less than 7 days ago are not installed (`min-release-age=7` in `.npmrc`, honored by npm 11.10 and later), since hijacked releases are usually found and pulled within days. Every version in the lockfile is at least 7 days old.
 - Install scripts from dependencies (`postinstall` and the like) never run (`ignore-scripts=true` in `.npmrc`), so a hijacked release cannot run code at install time. The setting also stops pre/post scripts such as `pretest` in `package.json`, so this repository does not use them.
 - The request body is capped at 1 MiB, and reading stops once the cap is exceeded.
-- Redirects from the destination are never followed. The destination check only covers the first URL, so following one could deliver the body and token outside `cursor.sh`.
+- Redirects from the destination are never followed. The destination check only covers the first URL, so following one could deliver the body and token somewhere you did not choose, or over http.
 - Forwarding gives up after 10 seconds.
 - Logs never include the body, the URL, the token or the channel secret.
 - If you find a vulnerability, please report it privately as described in [SECURITY.md](SECURITY.md).
