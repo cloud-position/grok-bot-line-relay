@@ -84,7 +84,7 @@ npx wrangler secret put CHANNEL_SECRET_SHOP
 
 ## アップデートのしかた
 
-テンプレートの変更は [コミットの一覧](https://github.com/keesmark/line-webhook-relay/commits/main) で見られます。更新しても Worker の URL と `CHANNEL_SECRET` は変わらないので、LINE の設定はそのまま使えます。ただし、Worker の名前が `grok-bot-line-relay` のときは、先に [名前が line-webhook-relay に変わったとき](#名前が-line-webhook-relay-に変わったとき) を見てください。合言葉 `RELAY_KEY` を使っていたときは、先に [RELAY_KEY から移るとき](#relay_key-から移るとき) を見てください。
+テンプレートの変更は [コミットの一覧](https://github.com/keesmark/line-webhook-relay/commits/main) で見られます。ふだんは更新しても Worker の URL と `CHANNEL_SECRET` は変わらないので、LINE の設定はそのまま使えます。ただし、Worker の名前が `grok-bot-line-relay` のときは、先に [名前が line-webhook-relay に変わったとき](#名前が-line-webhook-relay-に変わったとき) を見てください。合言葉 `RELAY_KEY` を使っていたときは、先に [RELAY_KEY から移るとき](#relay_key-から移るとき) を見てください。
 
 フォークのページで「Sync fork」→「Update branch」を押します。押す前に、取り込まれるコミットの一覧に目を通してください。取り込むと、Cloudflare が自動でデプロイします。
 
@@ -110,14 +110,16 @@ Worker の名前を `line-webhook-relay` から変えていた場合は、`git p
 
 ### 名前が line-webhook-relay に変わったとき
 
-このテンプレートは、名前を `grok-bot-line-relay` から `line-webhook-relay` に変えました。`wrangler.jsonc` の `name` も変わったので、Worker の名前が `grok-bot-line-relay` のまま更新を取り込むと、ビルドが失敗します。次の順に進めてください。
+このテンプレートは、名前を `grok-bot-line-relay` から `line-webhook-relay` に変えました。`wrangler.jsonc` の `name` も変わったので、Worker の名前が `grok-bot-line-relay` のまま更新を取り込むと、ビルドが失敗します（前の版は動き続けます）。メッセージを取りこぼさないよう、新しい名前の Worker を作ってから切り替えます。
 
-1. Cloudflare のダッシュボードで Worker の「設定」を開き、Worker の名前を `line-webhook-relay` に変えます。Worker の URL は `https://line-webhook-relay.<あなたのサブドメイン>.workers.dev` に変わり、古い URL は使えなくなります。
-2. すぐに、つないでいるすべてのチャネルについて、LINE Developers コンソールの Webhook URL の Worker の URL の部分を新しいものに変えて保存し、「検証」を押して成功を確かめます。1 から 2 までの間に届いたメッセージは、宛先に流れません。
-3. Worker の「変数とシークレット」に `CHANNEL_SECRET`（と `CHANNEL_SECRET_<名前>`）が残っていることを確かめます。
-4. [アップデートのしかた](#アップデートのしかた) の手順で更新を取り込み、デプロイが成功したことを確かめます。
+1. [アップデートのしかた](#アップデートのしかた) の手順で、フォークに更新を取り込みます。今の Worker のビルドは失敗しますが、前の版のまま動き続けます。
+2. [作り方](#作り方) の 2〜4 と同じ手順で、同じフォークから名前が `line-webhook-relay` の Worker を作ります。`CHANNEL_SECRET`（と `CHANNEL_SECRET_<名前>`）には、今の Worker と同じ値を入れます。
+3. つないでいるすべてのチャネルについて、LINE Developers コンソールの Webhook URL の Worker の URL の部分を新しい Worker の URL に変えて保存し、「検証」を押して成功を確かめます。
+4. LINE から1通送って宛先に届くことを確かめたら、古い Worker `grok-bot-line-relay` を削除します。
 
-GitHub のリポジトリの URL も変わりましたが、古い URL は新しい URL に転送されるので、フォークの「Sync fork」はそのまま使えます。
+独自ドメインやルートを使っていたときは、3 の代わりに、それを新しい Worker に付け替えます。LINE の Webhook URL は変えなくてかまいません。
+
+GitHub のリポジトリの URL も変わりましたが、古い URL は新しい URL に転送されます。
 
 ### RELAY_KEY から移るとき
 
