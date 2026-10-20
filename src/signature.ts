@@ -19,3 +19,10 @@ export async function lineSignatureMatches(body: Uint8Array, signature: Uint8Arr
   );
   return crypto.subtle.verify("HMAC", key, signature, body);
 }
+
+export async function lineSignatureMatchesAny(body: Uint8Array, signature: Uint8Array, channelSecrets: string[]): Promise<boolean> {
+  for (const secret of channelSecrets) {
+    if (await lineSignatureMatches(body, signature, secret)) return true;
+  }
+  return false;
+}

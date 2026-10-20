@@ -9,7 +9,7 @@ It runs on your own Cloudflare account (the free plan is enough). Nothing passes
 - It stores nothing. It passes the request body to Grok Bot as received.
 - It cannot send messages to LINE and holds no channel access token.
 - It verifies the LINE signature and forwards only what really comes from LINE.
-- The only value to set is `CHANNEL_SECRET`, your LINE channel secret.
+- The only value to set is `CHANNEL_SECRET`, your LINE channel secret. To connect several LINE Official Accounts, add one more per channel.
 
 > This is an unofficial template made by an individual. It is not affiliated with, endorsed by, or sponsored by xAI (now SpaceXAI) or LY Corporation. Grok is a trademark of SpaceXAI. LINE is a trademark or registered trademark of LY Corporation.
 
@@ -53,14 +53,33 @@ URL-encode `url`. The Worker sends `token` as `Authorization: Bearer <Grok Bot t
 
 ### About the LINE signature
 
-LINE signs the body with your channel secret and sends the result in the `X-Line-Signature` header. The Worker computes the signature over the body exactly as received; requests whose signature does not match get a 401 and nothing is forwarded. A missing or malformed signature gets a 401 before the body is read. If `CHANNEL_SECRET` is not set, the Worker returns 500 and forwards nothing.
+LINE signs the body with your channel secret and sends the result in the `X-Line-Signature` header. The Worker computes the signature over the body exactly as received; requests whose signature matches none of your channel secrets get a 401 and nothing is forwarded. A missing or malformed signature gets a 401 before the body is read. If no channel secret is set, the Worker returns 500 and forwards nothing.
 
 So only bodies signed by LINE are forwarded, and anyone who learns your Worker URL cannot attach a body of their own and their own `token` to make your Worker POST to `cursor.sh` (using it as a relay). The signature and body also reach Grok Bot, so whoever obtains them can send that same body to the Worker again, but they can only repeat a body LINE already sent. The `X-Line-Signature` header is also passed through to Grok Bot unchanged.
 
-If you reissue the channel secret in the LINE Developers Console, update `CHANNEL_SECRET` too, with the command below or in the Cloudflare dashboard under the Worker's Settings → Variables and Secrets. Until you do, every request from LINE gets a 401.
+If you reissue the channel secret in the LINE Developers Console, update that channel's `CHANNEL_SECRET` (or `CHANNEL_SECRET_<name>`) too, with the command below or in the Cloudflare dashboard under the Worker's Settings → Variables and Secrets. Until you do, every request from that channel gets a 401.
 
 ```sh
 npx wrangler secret put CHANNEL_SECRET
+```
+
+## Connecting several LINE Official Accounts
+
+One Worker can serve any number of LINE Official Accounts (channels). For each channel after the first:
+
+1. Open the Worker's Settings → Variables and Secrets, add `CHANNEL_SECRET_<name>` as a secret, and enter that channel's channel secret. Use letters, digits and `_` for `<name>`, and pick a different one per channel (for example `CHANNEL_SECRET_SHOP` or `CHANNEL_SECRET_2`).
+2. In that channel's Webhook URL field, paste a URL of the same shape as in [Connecting LINE](#connecting-line), press "Verify" and check that it succeeds. Use the same Worker URL, with the `url` and `token` of the Grok Bot that should receive that channel's messages.
+
+The Worker checks the signature against `CHANNEL_SECRET` and every value whose name starts with `CHANNEL_SECRET_`, and forwards the request if any one of them matches. The destination comes from the `url` and `token` in each channel's Webhook URL, so the Worker never needs to tell the channels apart.
+
+- With a single channel, `CHANNEL_SECRET` alone keeps working as before. Updating needs no change to your settings.
+- You may skip `CHANNEL_SECRET` and use only `CHANNEL_SECRET_<name>` values.
+- To disconnect a channel, delete its secret.
+
+To add one with the command line, use the new name:
+
+```sh
+npx wrangler secret put CHANNEL_SECRET_SHOP
 ```
 
 ## Updating
@@ -128,13 +147,13 @@ flowchart TD
     B -- other --> N404[404]
     B -- /webhook --> C{POST?}
     C -- no --> N405[405]
-    C -- yes --> S{CHANNEL_SECRET set?}
+    C -- yes --> S{At least one<br/>channel secret set?}
     S -- no --> N500[500]
     S -- yes --> P{X-Line-Signature present<br/>and well formed?}
     P -- no --> N401a[401]
     P -- yes --> F{Body 1 MiB or less?}
     F -- no --> N413[413]
-    F -- yes --> K{X-Line-Signature matches<br/>the body's signature?}
+    F -- yes --> K{X-Line-Signature matches<br/>the body's signature under<br/>any channel secret?}
     K -- no --> N401b[401]
     K -- yes --> D{url and token present<br/>and url parses?}
     D -- no --> N400a[400]
@@ -153,13 +172,13 @@ flowchart TD
 | --- | --- |
 | `src/index.ts` | Routes requests by path |
 | `src/webhook.ts` | Handles `/webhook` and forwards to Grok Bot |
-| `src/env.ts` | Allowed destinations, and building the destination from `url` and `token` |
+| `src/env.ts` | Reading the channel secrets, allowed destinations, and building the destination from `url` and `token` |
 | `src/signature.ts` | Checks the LINE signature |
 | `src/body.ts` | Reads the body with a size cap |
 
 ## Security
 
-- The LINE signature (`X-Line-Signature`) is checked against `CHANNEL_SECRET`, and requests that do not match get a 401 and are not forwarded. The comparison uses Web Crypto `verify`, so its timing does not reveal the expected value.
+- The LINE signature (`X-Line-Signature`) is checked against `CHANNEL_SECRET` and `CHANNEL_SECRET_<name>`, and requests that do not match get a 401 and are not forwarded. The comparison uses Web Crypto `verify`, so its timing does not reveal the expected value.
 - No runtime dependencies. Development tools are pinned to exact versions with a lockfile.
 - Versions published less than 7 days ago are not installed (`min-release-age=7` in `.npmrc`, honored by npm 11.10 and later), since hijacked releases are usually found and pulled within days. Every version in the lockfile is at least 7 days old.
 - Install scripts from dependencies (`postinstall` and the like) never run (`ignore-scripts=true` in `.npmrc`), so a hijacked release cannot run code at install time. The setting also stops pre/post scripts such as `pretest` in `package.json`, so this repository does not use them.
@@ -173,7 +192,7 @@ flowchart TD
 
 ```sh
 npm ci
-cp .dev.vars.example .dev.vars  # set CHANNEL_SECRET= to your channel secret
+cp .dev.vars.example .dev.vars  # set CHANNEL_SECRET= to your channel secret (add CHANNEL_SECRET_<name>= for more channels)
 npm test
 npm run coverage
 npm run dev

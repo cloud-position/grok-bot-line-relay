@@ -146,6 +146,33 @@ describe("/webhook", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("accepts a body signed by any of the configured channel secrets", async () => {
+    const env: Env = { CHANNEL_SECRET, CHANNEL_SECRET_SHOP: "shop-secret", CHANNEL_SECRET_2: "second-secret" };
+    for (const secret of [CHANNEL_SECRET, "shop-secret", "second-secret"]) {
+      expect((await post(BODY, { env, signature: await sign(BODY, secret) })).status, secret).toBe(200);
+    }
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("works with only CHANNEL_SECRET_<name> set", async () => {
+    const env: Env = { CHANNEL_SECRET_SHOP: " shop-secret\n" };
+    expect((await post(BODY, { env, signature: await sign(BODY, "shop-secret") })).status).toBe(200);
+    expect((await post(BODY, { env })).status).toBe(401);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 401 when no configured channel secret matches", async () => {
+    const env: Env = { CHANNEL_SECRET, CHANNEL_SECRET_SHOP: "shop-secret" };
+    expect((await post(BODY, { env, signature: await sign(BODY, "other-secret") })).status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("ignores blank secrets and variables that are not channel secrets", async () => {
+    const env = { CHANNEL_SECRET: " ", CHANNEL_SECRET_SHOP: "", CHANNEL_SECRETX: CHANNEL_SECRET, OTHER: CHANNEL_SECRET, CHANNEL_SECRET_KV: {} };
+    expect((await post(BODY, { env })).status).toBe(500);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("returns 200 without forwarding when there are no events", async () => {
     expect((await post(JSON.stringify({ destination: "U", events: [] }))).status).toBe(200);
     expect((await post(JSON.stringify({ destination: "U" }))).status).toBe(200);
