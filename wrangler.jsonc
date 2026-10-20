@@ -3,6 +3,8 @@
   "name": "grok-bot-line-relay",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-15",
+  // Forwards always go out through the public internet, never straight to this zone's origin.
+  "compatibility_flags": ["global_fetch_strictly_public"],
   "workers_dev": true,
   // The webhook URL carries the token, so keep request logs off.
   "observability": { "enabled": false }

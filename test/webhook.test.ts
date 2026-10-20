@@ -85,28 +85,40 @@ describe("/webhook", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("forwards to any https path on cursor.sh or its subdomains", async () => {
-    for (const target of ["https://api3.cursor.sh/new/webhook/abc", "https://cursor.sh/hooks/abc"]) {
+  it("forwards to any https host and path", async () => {
+    const targets = ["https://api3.cursor.sh/new/webhook/abc", "https://cursor.sh/hooks/abc", "https://hooks.example.com/line?x=1"];
+    for (const target of targets) {
       expect((await post(BODY, { url: webhookUrl({ url: target, token: "k" }) })).status, target).toBe(200);
     }
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      "https://api3.cursor.sh/new/webhook/abc",
-      "https://cursor.sh/hooks/abc",
-    ]);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(targets);
   });
 
-  it("returns 403 and does not forward outside cursor.sh", async () => {
+  it("returns 403 and does not forward to a non-https url, a port or user info", async () => {
     for (const target of [
-      "https://evil.example/automations/webhook/abc",
-      "https://api2.cursor.sh.evil.example/automations/webhook/abc",
-      "https://evilcursor.sh/automations/webhook/abc",
       "http://api2.cursor.sh/automations/webhook/abc",
+      "ftp://hooks.example.com/line",
       "https://api2.cursor.sh:8443/automations/webhook/abc",
       "https://user:pass@api2.cursor.sh/automations/webhook/abc",
+      "https://user@hooks.example.com/line",
     ]) {
       expect((await post(BODY, { url: webhookUrl({ url: target, token: "k" }) })).status, target).toBe(403);
     }
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 and does not forward a request sent by a Worker, such as itself", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ctx = createExecutionContext();
+    const request = new Request(webhookUrl({ url: "https://relay.example/webhook?url=x&token=y", token: "k" }), {
+      method: "POST",
+      headers: { "CF-Worker": "relay.example", "X-Line-Signature": await sign(BODY) },
+      body: BODY,
+    });
+    expect((await handleWebhook(request, ENV, ctx)).status).toBe(403);
+    await waitOnExecutionContext(ctx);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith("webhook: request from a Worker");
+    warn.mockRestore();
   });
 
   it("returns 401 and does not forward when the LINE signature is missing or wrong", async () => {
