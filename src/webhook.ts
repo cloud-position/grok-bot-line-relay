@@ -26,6 +26,10 @@ async function forward(target: ForwardTarget, body: Uint8Array, signature: strin
 
 export async function handleWebhook(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (request.method !== "POST") return new Response(null, { status: 405, headers: { Allow: "POST" } });
+  if (request.headers.has("CF-Worker")) {
+    console.warn("webhook: request from a Worker");
+    return new Response(null, { status: 403 });
+  }
   const secrets = channelSecrets(env);
   if (secrets.length === 0) {
     console.error("webhook: no CHANNEL_SECRET or CHANNEL_SECRET_<name> is set");

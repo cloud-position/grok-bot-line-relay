@@ -7,7 +7,7 @@ LINE webhooks cannot carry a custom key header, so this Worker sits in between a
 It also works with any other https webhook that accepts `Authorization: Bearer`, not just Grok Bot.
 It runs on your own Cloudflare account (the free plan is enough). Nothing passes through the author's servers.
 
-- It stores nothing. It passes the request body to Grok Bot as received.
+- It stores nothing. It passes the request body to the destination as received.
 - It cannot send messages to LINE and holds no channel access token.
 - It verifies the LINE signature and forwards only what really comes from LINE.
 - The only value to set is `CHANNEL_SECRET`, your LINE channel secret. To connect several LINE Official Accounts, add one more per channel.
@@ -47,7 +47,7 @@ https://<your Worker URL>/webhook?url=<Grok Bot webhook URL>&token=<Grok Bot tok
 URL-encode `url`. The Worker sends `token` as `Authorization: Bearer <Grok Bot token>` and posts the body to `url` exactly as LINE sent it.
 
 - A Grok Bot webhook URL looks like `https://api2.cursor.sh/automations/webhook/…`.
-- Any https URL can be the destination. An http URL, a URL with a port, or a URL with a user name or password gets a 403 and nothing is forwarded, so the token is never sent in plain text.
+- Any https URL can be the destination. An http URL, a URL with a port other than 443, or a URL with a user name or password gets a 403 and nothing is forwarded, so the token is never sent in plain text.
 - The token is part of the URL, so request logs are turned off. Do not paste this URL into chats or other places.
 - Requests with no events, such as the "Verify" button, are not forwarded.
 - The Worker returns 200 to LINE even when the destination returns an error. LINE does not retry, so check that message in the LINE chat.
@@ -56,7 +56,7 @@ URL-encode `url`. The Worker sends `token` as `Authorization: Bearer <Grok Bot t
 
 LINE signs the body with your channel secret and sends the result in the `X-Line-Signature` header. The Worker computes the signature over the body exactly as received; requests whose signature matches none of your channel secrets get a 401 and nothing is forwarded. A missing or malformed signature gets a 401 before the body is read. If no channel secret is set, the Worker returns 500 and forwards nothing.
 
-So only bodies signed by LINE are forwarded, and anyone who learns your Worker URL cannot attach a body of their own and their own `token` to make your Worker POST anywhere (using it as a relay). The signature and body also reach the destination, so whoever obtains them can send that same body to the Worker again. The signature covers only the body, so they can also change `url` and `token` to send it somewhere else, but they can only repeat a body LINE already sent. The token lives only in the URL you set in LINE, so a resent request never leaks it. The `X-Line-Signature` header is also passed through to Grok Bot unchanged.
+So only bodies signed by LINE are forwarded, and anyone who learns your Worker URL cannot attach a body of their own and their own `token` to make your Worker POST anywhere (using it as a relay). The signature and body also reach the destination, so whoever obtains them can send that same body to the Worker again. The signature covers only the body, so they can also change `url` and `token` to send it somewhere else, but they can only repeat a body LINE already sent. The token lives only in the URL you set in LINE, so a resent request never leaks it. The `X-Line-Signature` header is also passed through to the destination unchanged.
 
 If you reissue the channel secret in the LINE Developers Console, update that channel's `CHANNEL_SECRET` (or `CHANNEL_SECRET_<name>`) too, with the command below or in the Cloudflare dashboard under the Worker's Settings → Variables and Secrets. Until you do, every request from that channel gets a 401.
 
@@ -127,7 +127,7 @@ sequenceDiagram
     participant U as LINE user
     participant L as LINE Platform
     participant W as Worker (your Cloudflare)
-    participant G as Grok Bot
+    participant G as Destination (Grok Bot etc.)
 
     U->>L: Sends a message
     L->>W: POST /webhook?url=…&token=…<br/>with X-Line-Signature
@@ -137,7 +137,7 @@ sequenceDiagram
     G-->>W: Response (logs keep only the count and status)
 ```
 
-The Worker returns 200 to LINE first and forwards to Grok Bot in the background (`ctx.waitUntil`). It stores nothing.
+The Worker returns 200 to LINE first and forwards to the destination in the background (`ctx.waitUntil`). It stores nothing.
 
 ### Request handling
 
@@ -148,7 +148,9 @@ flowchart TD
     B -- other --> N404[404]
     B -- /webhook --> C{POST?}
     C -- no --> N405[405]
-    C -- yes --> S{At least one<br/>channel secret set?}
+    C -- yes --> CW{From a Worker?<br/>CF-Worker header}
+    CW -- yes --> N403w[403]
+    CW -- no --> S{At least one<br/>channel secret set?}
     S -- no --> N500[500]
     S -- yes --> P{X-Line-Signature present<br/>and well formed?}
     P -- no --> N401a[401]
@@ -164,7 +166,7 @@ flowchart TD
     G -- no --> N400b[400]
     G -- yes --> H{Any events?}
     H -- none --> R200a[200, not forwarded]
-    H -- some --> R200b[200, forwarded to Grok Bot]
+    H -- some --> R200b[200, forwarded to the destination]
 ```
 
 ### Files
@@ -172,7 +174,7 @@ flowchart TD
 | File | Role |
 | --- | --- |
 | `src/index.ts` | Routes requests by path |
-| `src/webhook.ts` | Handles `/webhook` and forwards to Grok Bot |
+| `src/webhook.ts` | Handles `/webhook` and forwards to the destination |
 | `src/env.ts` | Reading the channel secrets and building the destination from `url` and `token` |
 | `src/signature.ts` | Checks the LINE signature |
 | `src/body.ts` | Reads the body with a size cap |
@@ -186,6 +188,8 @@ flowchart TD
 - The request body is capped at 1 MiB, and reading stops once the cap is exceeded.
 - Redirects from the destination are never followed. The destination check only covers the first URL, so following one could deliver the body and token somewhere you did not choose, or over http.
 - Forwarding gives up after 10 seconds.
+- Forwards always go out through the public internet (`global_fetch_strictly_public` in `wrangler.jsonc`). With a custom domain attached, this stops them from reaching other sites in the same zone while skipping Cloudflare's WAF or Access.
+- Requests from a Worker (with a `CF-Worker` header) get a 403. This stops a resent body from making this Worker forward to itself over and over. Requests from LINE never carry this header.
 - Logs never include the body, the URL, the token or the channel secret.
 - If you find a vulnerability, please report it privately as described in [SECURITY.md](SECURITY.md).
 

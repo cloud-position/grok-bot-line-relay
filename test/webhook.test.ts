@@ -106,6 +106,21 @@ describe("/webhook", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("returns 403 and does not forward a request sent by a Worker, such as itself", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const ctx = createExecutionContext();
+    const request = new Request(webhookUrl({ url: "https://relay.example/webhook?url=x&token=y", token: "k" }), {
+      method: "POST",
+      headers: { "CF-Worker": "relay.example", "X-Line-Signature": await sign(BODY) },
+      body: BODY,
+    });
+    expect((await handleWebhook(request, ENV, ctx)).status).toBe(403);
+    await waitOnExecutionContext(ctx);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledWith("webhook: request from a Worker");
+    warn.mockRestore();
+  });
+
   it("returns 401 and does not forward when the LINE signature is missing or wrong", async () => {
     const tampered = BODY.replace("こんにちは", "さようなら");
     for (const signature of [null, "", "not base64!", await sign(BODY, "other-secret"), await sign(tampered)]) {

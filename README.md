@@ -7,7 +7,7 @@ LINE の Webhook は送信キーのヘッダーを付けられないので、こ
 Grok Bot 以外でも、`Authorization: Bearer` で受ける https の Webhook なら届けられます。
 あなた自身の Cloudflare アカウント（無料プラン）で動きます。作者のサーバーは一切通りません。
 
-- 何も保存しません。届いた本文を、そのまま Grok Bot に流すだけです。
+- 何も保存しません。届いた本文を、そのまま宛先に流すだけです。
 - LINE へ送信する機能はありません。チャネルアクセストークンも持ちません。
 - LINE の署名を確かめ、LINE から届いたものだけを流します。
 - 設定する値は、LINE のチャネルシークレット `CHANNEL_SECRET` だけです。複数の LINE 公式アカウントをつなぐときは、チャネルごとに1つ足します。
@@ -47,7 +47,7 @@ https://<Worker の URL>/webhook?url=<Grok Bot の Webhook の URL>&token=<送�
 `url` は URL エンコードしてください。Worker は `token` を `Authorization: Bearer <送信キー>` に付け替えて、本文を LINE から届いたまま `url` に流します。
 
 - Grok Bot の Webhook の URL は `https://api2.cursor.sh/automations/webhook/…` の形です。
-- 宛先は https の URL ならどこでもかまいません。http の URL、ポートを指定した URL、ユーザー名やパスワードが入った URL は 403 になり、どこにも流しません。送信キーを平文で流さないためです。
+- 宛先は https の URL ならどこでもかまいません。http の URL、443 以外のポートを指定した URL、ユーザー名やパスワードが入った URL は 403 になり、どこにも流しません。送信キーを平文で流さないためです。
 - 送信キーが URL に入るので、リクエストのログは残しません。この URL はチャットなどに貼らないでください。
 - 「検証」ボタンのようにイベントが空のものは流しません。
 - 流した先がエラーを返しても、LINE には 200 を返します。LINE は再送しないので、そのメッセージは LINE のチャットで確かめてください。
@@ -56,7 +56,7 @@ https://<Worker の URL>/webhook?url=<Grok Bot の Webhook の URL>&token=<送�
 
 LINE は、本文をチャネルシークレットで署名した値を `X-Line-Signature` ヘッダーに付けて送ってきます。Worker は届いた本文をそのまま使って署名を計算し、設定したチャネルシークレットのどれとも合わないリクエストは 401 にして、どこにも流しません。署名がないか形が違うときは、本文を読む前に 401 にします。チャネルシークレットが1つも設定されていないときは 500 を返し、何も流しません。
 
-これで、LINE が署名した本文しか流れません。Worker の URL を知った人が、自分で作った本文と自分の `token` を付けて、あなたの Worker からどこかに POST させること（踏み台）はできません。署名と本文は宛先にも届くので、それを手に入れた人は同じ本文を Worker に送り直せます。署名は本文にしかかからないので、そのとき `url` と `token` を変えて別の宛先に送らせることもできますが、LINE が一度送った本文を繰り返すことしかできません。送信キーは LINE に設定した URL にしか入っていないので、送り直しで漏れることはありません。`X-Line-Signature` ヘッダーは、そのまま Grok Bot にも渡します。
+これで、LINE が署名した本文しか流れません。Worker の URL を知った人が、自分で作った本文と自分の `token` を付けて、あなたの Worker からどこかに POST させること（踏み台）はできません。署名と本文は宛先にも届くので、それを手に入れた人は同じ本文を Worker に送り直せます。署名は本文にしかかからないので、そのとき `url` と `token` を変えて別の宛先に送らせることもできますが、LINE が一度送った本文を繰り返すことしかできません。送信キーは LINE に設定した URL にしか入っていないので、送り直しで漏れることはありません。`X-Line-Signature` ヘッダーは、そのまま宛先にも渡します。
 
 LINE Developers コンソールでチャネルシークレットを発行し直したときは、次のコマンドか、Cloudflare のダッシュボードで Worker の「設定」→「変数とシークレット」から、そのチャネルの `CHANNEL_SECRET`（または `CHANNEL_SECRET_<名前>`）も変えます。変えるまでは、そのチャネルからのリクエストがすべて 401 になります。
 
@@ -127,7 +127,7 @@ sequenceDiagram
     participant U as LINE ユーザー
     participant L as LINE Platform
     participant W as Worker（あなたの Cloudflare）
-    participant G as Grok Bot
+    participant G as 宛先（Grok Bot など）
 
     U->>L: メッセージを送る
     L->>W: POST /webhook?url=…&token=…<br/>X-Line-Signature 付き
@@ -137,7 +137,7 @@ sequenceDiagram
     G-->>W: 応答（ログには件数と状態だけ残す）
 ```
 
-LINE には先に 200 を返し、Grok Bot への転送はその後ろで行います（`ctx.waitUntil`）。Worker は何も保存しません。
+LINE には先に 200 を返し、宛先への転送はその後ろで行います（`ctx.waitUntil`）。Worker は何も保存しません。
 
 ### リクエストの判定
 
@@ -148,7 +148,9 @@ flowchart TD
     B -- その他 --> N404[404]
     B -- /webhook --> C{POST か}
     C -- いいえ --> N405[405]
-    C -- はい --> S{チャネルシークレットが<br/>1つでも設定されているか}
+    C -- はい --> CW{Worker から来たか<br/>CF-Worker ヘッダー}
+    CW -- はい --> N403w[403]
+    CW -- いいえ --> S{チャネルシークレットが<br/>1つでも設定されているか}
     S -- いいえ --> N500[500]
     S -- はい --> P{X-Line-Signature があり<br/>形が正しいか}
     P -- いいえ --> N401a[401]
@@ -164,7 +166,7 @@ flowchart TD
     G -- いいえ --> N400b[400]
     G -- はい --> H{events が空か}
     H -- 空 --> R200a[200・転送しない]
-    H -- ある --> R200b[200・Grok Bot へ転送]
+    H -- ある --> R200b[200・宛先へ転送]
 ```
 
 ### ファイル
@@ -172,7 +174,7 @@ flowchart TD
 | ファイル | 役目 |
 | --- | --- |
 | `src/index.ts` | パスごとの振り分け |
-| `src/webhook.ts` | `/webhook` の処理と Grok Bot への転送 |
+| `src/webhook.ts` | `/webhook` の処理と宛先への転送 |
 | `src/env.ts` | チャネルシークレットの読み出しと、`url`・`token` からの宛先づくり |
 | `src/signature.ts` | LINE の署名の照合 |
 | `src/body.ts` | 本文を上限つきで読む |
@@ -186,6 +188,8 @@ flowchart TD
 - 本文の大きさに上限（1MiB）をかけ、上限を超えたら読むのをやめます。
 - 転送先がリダイレクトを返しても追いかけません。宛先の確認は最初の URL にしか効かないので、追いかけると、あなたが選んでいない先や http の URL に本文や送信キーが届くおそれがあるためです。
 - 転送は10秒で打ち切ります。
+- 転送は必ずインターネット側を通します（`wrangler.jsonc` の `global_fetch_strictly_public`）。独自ドメインをつないだときに、同じゾーンのほかのサイトへ、Cloudflare の WAF や Access を飛ばして届くことがないようにするためです。
+- Worker から来たリクエスト（`CF-Worker` ヘッダー付き）は 403 にします。送り直された本文で、この Worker が自分自身に転送し続けることがないようにするためです。LINE からのリクエストには付きません。
 - ログには本文・URL・送信キー・チャネルシークレットを出しません。
 - 脆弱性を見つけたときは [SECURITY.md](SECURITY.md) の手順で、非公開で知らせてください。
 
